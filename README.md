@@ -1,5 +1,5 @@
 # Raytracer
-Renders obj files through raytracing
+Renders .obj files through raytracing
 
 Currently has the following limitations:
 * Can only render one object at a time
