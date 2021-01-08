@@ -1,9 +1,9 @@
+#include <stdbool.h>
+
 #include <SDL.h>
 #include <SDL_image.h>
 
-//Boolean constants
-const int true = 1;
-const int false = 0;
+#include "obj_reader.h"
 
 //Window used for rendering
 SDL_Window* S_Window = NULL;
@@ -153,4 +153,43 @@ uint32_t get_pixel(SDL_Surface *surface, int x, int y)
     default:
       return 0;
   }
+}
+
+//Gets rgb from texture map
+void get_rgb(SDL_Surface *texture, int index_At, int index_Bt, int index_Ct, double uv[2], double rgb[3])
+{
+  
+  double At[2], Bt[2], Ct[2];
+  At[0] = u[index_At]; At[1] = v[index_At];
+  Bt[0] = u[index_Bt]; Bt[1] = v[index_Bt];
+  Ct[0] = u[index_Ct]; Ct[1] = v[index_Ct];
+
+  double width, height;
+  
+  //Find width and height of the texture
+  width = (double) texture->w;
+  height = (double) texture->h;
+
+  double x,y;
+  int xi, yi;
+
+  //Find where in the triangle we intersected (Range [0, 1]) 
+  x = (1-uv[0]-uv[1])*At[0] + uv[0]*Bt[0] + uv[1]*Ct[0];
+  y = (1-uv[0]-uv[1])*At[1] + uv[0]*Bt[1] + uv[1]*Ct[1];
+
+  //IMG has (0,0) in top left corner, we want (0,0) in bottom left corner
+  y = 1 - y;
+
+  x *= width; y *= height;
+
+  xi = (int) x; yi = (int) y;
+
+  uint8_t r, g, b;
+
+  uint32_t pixel = get_pixel(texture, xi, yi);
+  SDL_GetRGB(pixel, texture->format, &r, &g, &b);
+
+  rgb[0] = (r*1.0)/255;
+  rgb[1] = (g*1.0)/255;
+  rgb[2] = (b*1.0)/255;
 }

@@ -1,5 +1,5 @@
 #OBJS specifies which files to compile as part of the project
-OBJS = driver.c M3d_matrix_tools.c
+OBJS = driver.c M3d_matrix_tools.c obj_reader.c light_model.c
 
 #CC specifies which compiler we're using
 CC = gcc

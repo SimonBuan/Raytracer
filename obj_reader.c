@@ -3,44 +3,13 @@
 #include <string.h>
 #include <libgen.h> //Needed for dirname
 
+#include "M3d_matrix_tools.h"
+#include "obj_reader.h"
+
 #include <SDL.h>
 #include <SDL_image.h>
 
 char *dir; //Directory path of the current obj file
-
-typedef struct Material{
-	int index;
-	char name[100];
-  	double Ka[3]; //ambient rgb
-  	double Kd[3]; //diffuse rgb
-  	double Ks[3]; //specular rgb
-  	double Ke[3];
-  	int illum; //illumination model, ranging from 1-10
-  	double Ns; //shininess of material
-  	double Tr;
-  	double Tf[3];
-  	double Ni;
-  	double d; //transperency of material
-  	SDL_Surface *map_Ka; //ambient texture map
-  	SDL_Surface *map_Kd; //diffuse texture map
-  	SDL_Surface *map_Ks; //specular texture map
-} Material;
-
-typedef struct Triangle{
-  int A; //index of 1st point
-  int B; //index of 2nd point
-  int C; //index of 3rd point
-  
-  int At; //index of texture vertex of 1st point
-  int Bt; //index of texture vertex of 2nd point
-  int Ct; //index of texture vertex of 3rd point
-
-  int An; //index of 1st normal
-  int Bn; //index of 2nd normal
-  int Cn; //index of 3rd normal
-
-  Material mtl; //Material of the triangle
-} Triangle;
 
 int num_tris, num_mats, num_vn, num_v;
 int current_mat = -1;
@@ -49,6 +18,9 @@ double x[100000], y[100000], z[100000], xnormal[50000], ynormal[50000], znormal[
 double u[50000], v[50000], w[50000];
 Triangle tris[75000];
 Material mats[100];
+
+double x_world[100000], y_world[100000], z_world[100000];
+double xnormal_world[50000], ynormal_world[50000], znormal_world[50000];
 
 int get_face_format(FILE *f){
   //Finds the format and info provided for the current face
@@ -97,6 +69,55 @@ void find_and_add_normal(int A, int B, int C){
 
 	//Save index of normal to the triangle
 	tris[num_tris].An = tris[num_tris].Bn = tris[num_tris].Cn = num_vn;
+}
+
+void center_and_scale_object()
+{
+  // center the object at the origin
+  // scale the object to fit inside of a 7x7x7 bounding box
+  int index_A, index_B, index_C;
+  double xc,yc,zc ;
+  double x_min, y_min, z_min, x_max, y_max, z_max;
+
+  xc = yc = zc = 0 ;
+  x_min = x_max = x[1];
+  y_min = y_max = y[1];
+  z_min = z_max = z[1];
+
+  int i ;
+  for (i = 1 ; i <= num_v; i++) {
+    xc += x[i]; yc += y[i]; zc += z[i];
+    
+    if(x[i] < x_min) x_min = x[i];
+    if(y[i] < y_min) y_min = y[i];
+    if(z[i] < z_min) z_min = z[i];
+
+    if(x[i] > x_max) x_max = x[i];
+    if(y[i] > y_max) y_max = y[i];
+    if(z[i] > z_max) z_max = z[i];
+  }
+  xc /= num_v; yc /= num_v; zc /= num_v;
+
+  double xd, yd, zd;
+
+  //Find the biggest distance between two points in all three axis.
+  xd = x_max - x_min;
+  yd = y_max - y_min;
+  zd = z_max - z_min;
+
+  double sf, delta;
+
+  if((xd > yd) && (xd > zd)) delta = xd;
+  else if(yd > zd) delta = yd;
+  else delta = zd;
+
+  //Set scaling factor based on largest distance two fit all vertices in a 7x7x7 cube.
+  sf = 7/delta;
+
+  for (i = 1 ; i <= num_v ; i++) {
+    x[i] -= xc;  y[i] -= yc;  z[i] -= zc;
+    x[i] *= sf;  y[i] *= sf;  z[i] *= sf;
+  }
 }
 
 void init_mat(Material mat)
@@ -476,6 +497,7 @@ int read_obj_file(const char *fname)
       fgets(name, 100, f); //skip the line
   }
 }
+center_and_scale_object();
 SDL_Log("Triangles: %d\n", num_tris);
 SDL_Log("Finished loading %s\n", fname);
 return 1;
