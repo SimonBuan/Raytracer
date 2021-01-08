@@ -6,7 +6,7 @@ Currently has the following limitations:
 * Object can only be made up of triangles and quadrilaterals
 * Can only render objects made up of < 75000 triangles
 
-###Examples of rendered objects
+### Examples of rendered objects
 
 ![Cat](https://i.imgur.com/6xnnOlC.png)
 
