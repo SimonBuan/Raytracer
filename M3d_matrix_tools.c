@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <math.h>
-
+#include "M3d_matrix_tools.h"
 
 /*
 
@@ -85,17 +85,6 @@ int M3d_make_scaling (double a[4][4], double sx, double sy, double sz)
   a[0][0] =  sx ;  a[1][1] = sy ;  a[2][2] = sz ;
   return 1 ;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 int M3d_make_x_rotation_cs (double a[4][4], double cs, double sn)
 // this one assumes cosine and sine are already known
@@ -217,9 +206,9 @@ int M3d_mat_mult_points (double *X, double *Y, double *Z,
 int M3d_x_product (double res[3], double a[3], double b[3])
 // res = a x b  , cross product of two vectors
 // SAFE: it is ok to make a call such as
-// D3d_x_product (a,  a,b) or
-// D3d_x_product (b,  a,b) or
-// D3d_x_product (a,  a,a) 
+// M3d_x_product (a,  a,b) or
+// M3d_x_product (b,  a,b) or
+// M3d_x_product (a,  a,a) 
 {
     double r[3] ;
     int v ;
@@ -239,6 +228,50 @@ int M3d_x_product (double res[3], double a[3], double b[3])
     }
 
     return v ;
+}
+
+double M3d_dot_product(double a[3], double b[3])
+//returns dot product of vectors a and b
+{
+        return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+}
+
+int M3d_norm(double res[3], double a[3]){
+        //Puts a vector with length 1 and same direction as a in res
+        double mag = sqrt(M3d_dot_product(a, a));
+        
+        if(mag == 0) return 0;
+
+        res[0] = a[0]/mag;
+        res[1] = a[1]/mag;
+        res[2] = a[2]/mag;
+
+        return 1;
+}
+
+double M3d_det_2x2(double A[2], double B[2]){
+  //            |A[0] B[0]|
+  //Returns det |A[1] B[1]|
+  double det = A[0]*B[1] - A[1]*B[0];
+  return det;
+}
+
+double M3d_det_3x3(double A[3], double B[3], double C[3]){
+  //            |A[0] B[0] C[0]|
+  //Returns det |A[1] B[1] C[1]|
+  //            |A[2] B[2] C[2]|
+  double det = 0;
+  double tempA[2], tempB[2];
+  tempA[0] = B[1]; tempA[1] = B[2];
+  tempB[0] = C[1]; tempB[1] = C[2];
+  det += A[0] * M3d_det_2x2(tempA, tempB);
+  tempA[0] = A[1]; tempA[1] = A[2];
+  tempB[0] = C[1]; tempB[1] = C[2];
+  det += -B[0] * M3d_det_2x2(tempA, tempB);
+  tempA[0] = A[1]; tempA[1] = A[2];
+  tempB[0] = B[1]; tempB[1] = B[2];
+  det += C[0] * M3d_det_2x2(tempA, tempB);
+  return det;
 }
 
 

@@ -1,4 +1,6 @@
-
+#include "M3d_matrix_tools.h"
+#include <math.h>
+#include <stdio.h>
 
 // To support the light model :
 double light_in_eye_space[3] ;
@@ -28,24 +30,21 @@ int Light_Model (double Ka[3],
   double N[3]; //Normal vector
   len = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
   if (len == 0) return 0;
-  N[0] = n[0]/len;  N[1] = n[1]/len;  N[2] = n[2]/len;
+  if(M3d_norm(N, n) == 0) return 0;
 
   double L[3]; //Vector from light to point
   L[0] = light_in_eye_space[0] - p[0]; 
   L[1] = light_in_eye_space[1] - p[1]; 
   L[2] = light_in_eye_space[2] - p[2]; 
-  len = sqrt(L[0]*L[0] + L[1]*L[1] + L[2]*L[2]);
-  if (len == 0) return 0;
-  L[0] /= len;  L[1] /= len;  L[2] /= len;
-  double NdotL = N[0]*L[0] + N[1]*L[1] + N[2]*L[2];
+  if (M3d_norm(L, L) == 0) return 0;
+  double NdotL = M3d_dot_product(N, L);
+  
 
   double V[3]; //Vector from camera to point
   V[0] = s[0] - p[0]; 
   V[1] = s[1] - p[1]; 
   V[2] = s[2] - p[2]; 
-  len = sqrt(V[0]*V[0] + V[1]*V[1] + V[2]*V[2]);
-  if (len == 0) return 0;
-  V[0] /= len;  V[1] /= len;  V[2] /= len;
+  if (M3d_norm(V, V) == 0) return 0;
   
   /////AMBIENT/////
   double ambient[3];
@@ -74,25 +73,9 @@ int Light_Model (double Ka[3],
   R[1] = 2*NdotL*N[1] - L[1];
   R[2] = 2*NdotL*N[2] - L[2];
 
-  double RdotV = R[0]*V[0] + R[1]*V[1] +  R[2]*V[2];
+  double RdotV = M3d_dot_product(R, V);
   if(RdotV > 0) f = pow(RdotV, SPECPOW);
   else f = 0;
-
-  //Jim Blinn's Specular Term
-  /*
-  double LplusV[3];
-  LplusV[0] = L[0] + V[0];
-  LplusV[1] = L[1] + V[1];
-  LplusV[2] = L[2] + V[2];
-  len = sqrt(LplusV[0]*LplusV[0] + LplusV[1]*LplusV[1] + LplusV[2]*LplusV[2]);
-
-  double H[3];
-  H[0] = LplusV[0]/len; H[1] = LplusV[1]/len; H[2] = LplusV[2]/len;
-
-  double NdotH;
-  N[0]*H[0] + N[1]*H[1] + N[2]*H[2];
-
-  f = pow(NdotH, SPECPOW);*/
 
   double specular[3];
   specular[0] = f*Ks[0]*DIFFUSE;
