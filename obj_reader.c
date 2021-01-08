@@ -27,23 +27,22 @@ typedef struct Material{
 } Material;
 
 typedef struct Triangle{
-  double A[3]; //x,y,z of 1st point
-  double B[3]; //x,y,z of 2nd point
-  double C[3]; //x,y,z of 3rd point
+  int A; //index of 1st point
+  int B; //index of 2nd point
+  int C; //index of 3rd point
   
-  double At[2]; //texture vertex of 1st point
-  double Bt[2]; //texture vertex of 2nd point
-  double Ct[2]; //texture vertex of 3rd point
+  int At; //index of texture vertex of 1st point
+  int Bt; //index of texture vertex of 2nd point
+  int Ct; //index of texture vertex of 3rd point
 
-  double An[3]; //x,y,z of 1st normal
-  double Bn[3]; //x,y,z of 2nd normal
-  double Cn[3]; //x,y,z of 3rd normal
+  int An; //index of 1st normal
+  int Bn; //index of 2nd normal
+  int Cn; //index of 3rd normal
 
   Material mtl; //Material of the triangle
 } Triangle;
 
-int num_tris;
-int num_mats;
+int num_tris, num_mats, num_vn, num_v;
 int current_mat = -1;
 
 double x[100000], y[100000], z[100000], xnormal[50000], ynormal[50000], znormal[50000];
@@ -71,6 +70,33 @@ int get_face_format(FILE *f){
 	}
 	fseek(f, pos, SEEK_SET);
 	return ret;
+}
+
+void find_and_add_normal(int A, int B, int C){
+	//Calculates the normal for the face defined by vertices at index A, B and C
+	//Adds the normal to the triangle that is currently being read
+
+	double AB[3], AC[3], n[3];
+
+	//Find two vectors defining the current face
+	AB[0] = x[B] - x[A];
+   	AB[1] = y[B] - y[A];
+   	AB[2] = z[B] - z[A];
+
+	AC[0] = x[C] - x[A];
+	AC[1] = y[C] - y[A];
+	AC[2] = z[C] - z[A];
+
+	M3d_x_product(n, AB, AC);
+
+	//Save normal to global array
+	num_vn++;
+	xnormal[num_vn] = n[0];
+	ynormal[num_vn] = n[1];
+	znormal[num_vn] = n[2];
+
+	//Save index of normal to the triangle
+	tris[num_tris].An = tris[num_tris].Bn = tris[num_tris].Cn = num_vn;
 }
 
 void init_mat(Material mat)
@@ -192,8 +218,8 @@ return 1;
 int read_obj_file(const char *fname)
 {
   //Parses .obj object file
-	num_tris = 0; num_mats = 0;
-	int num_v = 0; int num_vt = 0; int num_vn = 0;
+	num_tris = 0; num_mats = 0; num_vn = 0; num_v = 0;
+	int num_vt = 0; 
 	int index_vA, index_vB, index_vC, index_vD, index_vt, index_vn, i;
 	int format;
 	double n[3], AB[3], AC[3];
@@ -259,342 +285,168 @@ int read_obj_file(const char *fname)
 
     	if(format == 1)
     	{//Face format: v v v
-			//FIRST VERTEX OF TRIANGLE
+			//Indeces of vertices of the triangle
     		fscanf(f, "%d", &index_vA);
-
-    		tris[num_tris].A[0] = x[index_vA];
-    		tris[num_tris].A[1] = y[index_vA];
-    		tris[num_tris].A[2] = z[index_vA];
-
-			//SECOND VERTEX OF TRIANGLE
     		fscanf(f, "%d", &index_vB);
-
-    		tris[num_tris].B[0] = x[index_vB];
-    		tris[num_tris].B[1] = y[index_vB];
-    		tris[num_tris].B[2] = z[index_vB];
-
-			//THIRD VERTEX OF TRIANGLE
     		fscanf(f, "%d", &index_vC);
 
-    		tris[num_tris].C[0] = x[index_vC];
-    		tris[num_tris].C[1] = y[index_vC];
-    		tris[num_tris].C[2] = z[index_vC];
+			tris[num_tris].A = index_vA;
+			tris[num_tris].B = index_vB;
+			tris[num_tris].C = index_vC;
 
 			//Normal vectors not provided
 			//Calculated here, same normal added to all three vertices
-    		AB[0] = x[index_vB] - x[index_vA];
-    		AB[1] = y[index_vB] - y[index_vA];
-    		AB[2] = z[index_vB] - z[index_vA];
-
-    		AC[0] = x[index_vC] - x[index_vA];
-    		AC[1] = y[index_vC] - y[index_vA];
-    		AC[2] = z[index_vC] - z[index_vA];
-
-    		M3d_x_product(n, AB, AC);
-
-    		tris[num_tris].An[0] = n[0];
-    		tris[num_tris].An[1] = n[1];
-    		tris[num_tris].An[2] = n[2];
-
-    		tris[num_tris].Bn[0] = n[0];
-    		tris[num_tris].Bn[1] = n[1];
-    		tris[num_tris].Bn[2] = n[2];
-
-    		tris[num_tris].Cn[0] = n[0];
-    		tris[num_tris].Cn[1] = n[1];
-    		tris[num_tris].Cn[2] = n[2];
+    		find_and_add_normal(index_vA, index_vB, index_vC);
 
 			//Check if face is a quadrilateral
     		if(fscanf(f, "%d", &index_vD) == 1){
 	  			//Triangulate the quadrilateral
     			num_tris++;
 
-	  			//FIRST VERTEX OF SECOND TRIANGLE
-    			tris[num_tris].A[0] = x[index_vA];
-    			tris[num_tris].A[1] = y[index_vA];
-    			tris[num_tris].A[2] = z[index_vA];
-
-	  			//SECOND VERTEX OF SECOND TRIANGLE
-    			tris[num_tris].B[0] = x[index_vC];
-    			tris[num_tris].B[1] = y[index_vC];
-    			tris[num_tris].B[2] = z[index_vC];
-
-	  			//THIRD VERTEX OF SECOND TRIANGLE
-    			tris[num_tris].C[0] = x[index_vD];
-    			tris[num_tris].C[1] = y[index_vD];
-    			tris[num_tris].C[2] = z[index_vD];
+	  			//Indeces of vertices of second triangle
+    			tris[num_tris].A = index_vA;
+    			tris[num_tris].B = index_vC;
+    			tris[num_tris].C = index_vD;
 
 	  			//Normal vector for the vertices not provided by file
 	  			//Normal vector for surface is the same as 1st triangle
-    			tris[num_tris].An[0] = n[0];
-    			tris[num_tris].An[1] = n[1];
-    			tris[num_tris].An[2] = n[2];
+    			tris[num_tris].An = tris[num_tris].Bn = tris[num_tris].Cn = num_vn;
 
-    			tris[num_tris].Bn[0] = n[0];
-    			tris[num_tris].Bn[1] = n[1];
-    			tris[num_tris].Bn[2] = n[2];
-
-    			tris[num_tris].Cn[0] = n[0];
-    			tris[num_tris].Cn[1] = n[1];
-    			tris[num_tris].Cn[2] = n[2];
     		}
     	}
       else if(format == 2){//Face format: v/vt v/vt v/vt
-		//FIRST VERTEX OF TRIANGLE
+		//First vertex of triangle
       	fscanf(f, "%d/%d", &index_vA, &index_vt);
 
-      	tris[num_tris].A[0] = x[index_vA];
-      	tris[num_tris].A[1] = y[index_vA];
-      	tris[num_tris].A[2] = z[index_vA];
+      	tris[num_tris].A = index_vA;
+      	tris[num_tris].At = index_vt;
 
-      	tris[num_tris].At[0] = u[index_vt];
-      	tris[num_tris].At[1] = v[index_vt];
-
-		//SECOND VERTEX OF TRIANGLE
+		//Second vertex of triangle
       	fscanf(f, "%d/%d", &index_vB, &index_vt);
 
-      	tris[num_tris].B[0] = x[index_vB];
-      	tris[num_tris].B[1] = y[index_vB];
-      	tris[num_tris].B[2] = z[index_vB];
+      	tris[num_tris].B = index_vB;
+      	tris[num_tris].Bt= index_vt;
 
-      	tris[num_tris].Bt[0] = u[index_vt];
-      	tris[num_tris].Bt[1] = v[index_vt];
-
-		//THIRD VERTEX OF TRIANGLE
+		//Third vertex of triangle
       	fscanf(f, "%d/%d", &index_vC, &index_vt);
 
-      	tris[num_tris].C[0] = x[index_vC];
-      	tris[num_tris].C[1] = y[index_vC];
-      	tris[num_tris].C[2] = z[index_vC];
-
-      	tris[num_tris].Ct[0] = u[index_vt];
-      	tris[num_tris].Ct[1] = v[index_vt];
+      	tris[num_tris].C = index_vC;
+      	tris[num_tris].Ct = index_vt;
 
 		//Normal vectors not provided
 		//Calculated here, same normal added to all three vertices
-      	AB[0] = x[index_vB] - x[index_vA];
-      	AB[1] = y[index_vB] - y[index_vA];
-      	AB[2] = z[index_vB] - z[index_vA];
-
-      	AC[0] = x[index_vC] - x[index_vA];
-      	AC[1] = y[index_vC] - y[index_vA];
-      	AC[2] = z[index_vC] - z[index_vA];
-
-      	M3d_x_product(n, AB, AC);
-
-      	tris[num_tris].An[0] = n[0];
-      	tris[num_tris].An[1] = n[1];
-      	tris[num_tris].An[2] = n[2];
-
-      	tris[num_tris].Bn[0] = n[0];
-      	tris[num_tris].Bn[1] = n[1];
-      	tris[num_tris].Bn[2] = n[2];
-
-      	tris[num_tris].Cn[0] = n[0];
-      	tris[num_tris].Cn[1] = n[1];
-      	tris[num_tris].Cn[2] = n[2];
+      	find_and_add_normal(index_vA, index_vB, index_vC);
 
 		//Check if face is a quadrilateral
       	if(fscanf(f, "%d/%d", &index_vD, &index_vt) == 2){
 	  		//Triangulate the quadrilateral
       		num_tris++;
 
-	  		//FIRST VERTEX OF SECOND TRIANGLE
-      		tris[num_tris].A[0] = x[index_vA];
-      		tris[num_tris].A[1] = y[index_vA];
-      		tris[num_tris].A[2] = z[index_vA];
+	  		//First vertex of second triangle
+      		tris[num_tris].A = index_vA;
 
 	  		//Shares texture vertices with first vertex of 1st triangle
-      		tris[num_tris].At[0] = tris[num_tris-1].At[0];
-      		tris[num_tris].At[1] = tris[num_tris-1].At[1];
+      		tris[num_tris].At = tris[num_tris-1].At;
 
-	  		//SECOND VERTEX OF SECOND TRIANGLE
-      		tris[num_tris].B[0] = x[index_vC];
-      		tris[num_tris].B[1] = y[index_vC];
-      		tris[num_tris].B[2] = z[index_vC];
+	  		//Second vertex of second triangle
+      		tris[num_tris].B = index_vC;
 
 	  		//Shares texture vertices with third vertex of 1st triangle
-      		tris[num_tris].Bt[0] = tris[num_tris-1].Ct[0];
-      		tris[num_tris].Bt[1] = tris[num_tris-1].Ct[1];
+      		tris[num_tris].Bt = tris[num_tris-1].Ct;
 
-	  		//THIRD VERTEX OF SECOND TRIANGLE
-      		tris[num_tris].C[0] = x[index_vD];
-      		tris[num_tris].C[1] = y[index_vD];
-      		tris[num_tris].C[2] = z[index_vD];
-
-      		tris[num_tris].Ct[0] = u[index_vt];
-      		tris[num_tris].Ct[1] = v[index_vt];
-
+	  		//Third vertex of second triangle
+      		tris[num_tris].C = index_vD;
+      		tris[num_tris].Ct = index_vt;
 
 	  		//Normals vector for the vertices not provided by file
 	  		//Normal vector for surface is the same as 1st triangle
-      		tris[num_tris].An[0] = n[0];
-      		tris[num_tris].An[1] = n[1];
-      		tris[num_tris].An[2] = n[2];
-
-      		tris[num_tris].Bn[0] = n[0];
-      		tris[num_tris].Bn[1] = n[1];
-      		tris[num_tris].Bn[2] = n[2];
-
-      		tris[num_tris].Cn[0] = n[0];
-      		tris[num_tris].Cn[1] = n[1];
-      		tris[num_tris].Cn[2] = n[2];
+      		tris[num_tris].An = tris[num_tris].Bn = tris[num_tris].Cn = num_vn;
       	}
       }
       else if(format == 3){//Face format: v/vt/vn  v/vt/vn v/vt/vn
-		//FIRST VERTEX OF TRIANGLE
+		//First vertex of triangle
       	fscanf(f, "%d/%d/%d", &index_vA, &index_vt, &index_vn);
 
-      	tris[num_tris].A[0] = x[index_vA];
-      	tris[num_tris].A[1] = y[index_vA];
-      	tris[num_tris].A[2] = z[index_vA];
+      	tris[num_tris].A = index_vA;
+      	tris[num_tris].At = index_vt;
+      	tris[num_tris].An = index_vn;
 
-      	tris[num_tris].At[0] = u[index_vt];
-      	tris[num_tris].At[1] = v[index_vt];
-
-      	tris[num_tris].An[0] = xnormal[index_vn];
-      	tris[num_tris].An[1] = ynormal[index_vn];
-      	tris[num_tris].An[2] = znormal[index_vn];
-
-		//SECOND VERTEX OF TRIANGLE
+		//Second vertex of triangle
       	fscanf(f, "%d/%d/%d", &index_vB, &index_vt, &index_vn);
 
-      	tris[num_tris].B[0] = x[index_vB];
-      	tris[num_tris].B[1] = y[index_vB];
-      	tris[num_tris].B[2] = z[index_vB];
+      	tris[num_tris].B = index_vB;
+      	tris[num_tris].Bt = index_vt;
+      	tris[num_tris].Bn = index_vn;
 
-      	tris[num_tris].Bt[0] = u[index_vt];
-      	tris[num_tris].Bt[1] = v[index_vt];
-
-      	tris[num_tris].Bn[0] = xnormal[index_vn];
-      	tris[num_tris].Bn[1] = ynormal[index_vn];
-      	tris[num_tris].Bn[2] = znormal[index_vn];
-
-		//THIRD VERTEX OF TRIANGLE
+		//Third vertex of triangle
       	fscanf(f, "%d/%d/%d", &index_vC, &index_vt, &index_vn);
 
-      	tris[num_tris].C[0] = x[index_vC];
-      	tris[num_tris].C[1] = y[index_vC];
-      	tris[num_tris].C[2] = z[index_vC];
+      	tris[num_tris].C = index_vC;
+      	tris[num_tris].Ct = index_vt;
+      	tris[num_tris].Cn = index_vn;
 
-      	tris[num_tris].Ct[0] = u[index_vt];
-      	tris[num_tris].Ct[1] = v[index_vt];
-
-      	tris[num_tris].Cn[0] = xnormal[index_vn];
-      	tris[num_tris].Cn[1] = ynormal[index_vn];
-      	tris[num_tris].Cn[2] = znormal[index_vn];
-
-	//Check if face is a quadrilateral
+		//Check if face is a quadrilateral
       	if(fscanf(f, "%d/%d/%d", &index_vD, &index_vt, &index_vn) == 3){
-	  //Triangulate the quadrilateral
+	  		//Triangulate the quadrilateral
       		num_tris++;
 
-	  //FIRST VERTEX OF SECOND TRIANGLE
-      		tris[num_tris].A[0] = x[index_vA];
-      		tris[num_tris].A[1] = y[index_vA];
-      		tris[num_tris].A[2] = z[index_vA];
+	  		//First vertex of second triangle
+      		tris[num_tris].A = index_vA;
 
-	  //Shares texture vertices with first vertex of 1st triangle
-      		tris[num_tris].At[0] = tris[num_tris-1].At[0];
-      		tris[num_tris].At[1] = tris[num_tris-1].At[1];
+	  		//Shares texture vertices and normal vector with first vertex of 1st triangle
+      		tris[num_tris].At = tris[num_tris-1].At;
+      		tris[num_tris].An = tris[num_tris-1].An;
 
-      		tris[num_tris].An[0] = tris[num_tris-1].An[0];
-      		tris[num_tris].An[1] = tris[num_tris-1].An[1];
-      		tris[num_tris].An[2] = tris[num_tris-1].An[2];
+	  		//Second vertex of second triangle
+      		tris[num_tris].B = index_vC;
 
-	  //SECOND VERTEX OF SECOND TRIANGLE
-      		tris[num_tris].B[0] = x[index_vC];
-      		tris[num_tris].B[1] = y[index_vC];
-      		tris[num_tris].B[2] = z[index_vC];
+	  		//Shares texture vertices and normal vector with third vertex of 1st triangle
+      		tris[num_tris].Bt = tris[num_tris-1].Ct;
+      		tris[num_tris].Bn = tris[num_tris-1].Cn;
 
-	  //Shares texture vertices with third vertex of 1st triangle
-      		tris[num_tris].Bt[0] = tris[num_tris-1].Ct[0];
-      		tris[num_tris].Bt[1] = tris[num_tris-1].Ct[1];
-
-      		tris[num_tris].Bn[0] = tris[num_tris-1].Cn[0];
-      		tris[num_tris].Bn[1] = tris[num_tris-1].Cn[1];
-      		tris[num_tris].Bn[2] = tris[num_tris-1].Cn[2];
-
-	  //THIRD VERTEX OF SECOND TRIANGLE
-      		tris[num_tris].C[0] = x[index_vD];
-      		tris[num_tris].C[1] = y[index_vD];
-      		tris[num_tris].C[2] = z[index_vD];
-
-      		tris[num_tris].Ct[0] = u[index_vt];
-      		tris[num_tris].Ct[1] = v[index_vt];
-
-      		tris[num_tris].Cn[0] = xnormal[index_vn];
-      		tris[num_tris].Cn[1] = ynormal[index_vn];
-      		tris[num_tris].Cn[2] = znormal[index_vn];
-
+	  		//Third vertex of second triangle
+      		tris[num_tris].C = index_vD;
+      		tris[num_tris].Ct = index_vt;
+      		tris[num_tris].Cn = index_vn;
       	}
       }
       else if(format == 4){//Face format: v//vn v//vn v//vn
-	//FIRST VERTEX OF TRIANGLE
+		//First vertex of triangle
       	fscanf(f, "%d//%d", &index_vA, &index_vn);
 
+      	tris[num_tris].A = index_vA;
+      	tris[num_tris].An = index_vn;
 
-      	tris[num_tris].A[0] = x[index_vA];
-      	tris[num_tris].A[1] = y[index_vA];
-      	tris[num_tris].A[2] = z[index_vA];
-
-      	tris[num_tris].An[0] = xnormal[index_vn];
-      	tris[num_tris].An[1] = ynormal[index_vn];
-      	tris[num_tris].An[2] = znormal[index_vn];
-
-	//SECOND VERTEX OF TRIANGLE
+		//Second vertex of triangle
       	fscanf(f, "%d//%d", &index_vB, &index_vn);
 
-      	tris[num_tris].B[0] = x[index_vB];
-      	tris[num_tris].B[1] = y[index_vB];
-      	tris[num_tris].B[2] = z[index_vB];
+      	tris[num_tris].B = index_vB;
+      	tris[num_tris].Bn = index_vn;
 
-      	tris[num_tris].Bn[0] = xnormal[index_vn];
-      	tris[num_tris].Bn[1] = ynormal[index_vn];
-      	tris[num_tris].Bn[2] = znormal[index_vn];
-
-	//THIRD VERTEX OF TRIANGLE
+		//Third vertex of triangle
       	fscanf(f, "%d//%d", &index_vC, &index_vn);
 
-      	tris[num_tris].C[0] = x[index_vC];
-      	tris[num_tris].C[1] = y[index_vC];
-      	tris[num_tris].C[2] = z[index_vC];
+      	tris[num_tris].C = index_vC;
+      	tris[num_tris].Cn = index_vn;
 
-      	tris[num_tris].Cn[0] = xnormal[index_vn];
-      	tris[num_tris].Cn[1] = ynormal[index_vn];
-      	tris[num_tris].Cn[2] = znormal[index_vn];
-
-	//Check if face is a quadrilateral
+		//Check if face is a quadrilateral
       	if(fscanf(f, "%d//%d", &index_vD, &index_vn) == 2){
-	  //Triangulate the quadrilateral
+	  		//Triangulate the quadrilateral
       		num_tris++;
 
-	  //FIRST VERTEX OF SECOND TRIANGLE
-      		tris[num_tris].A[0] = x[index_vA];
-      		tris[num_tris].A[1] = y[index_vA];
-      		tris[num_tris].A[2] = z[index_vA];
+	  		//First vertex of second triangle
+      		tris[num_tris].A = index_vA;
+      		tris[num_tris].An = tris[num_tris-1].An;
 
-      		tris[num_tris].An[0] = tris[num_tris-1].An[0];
-      		tris[num_tris].An[1] = tris[num_tris-1].An[1];
-      		tris[num_tris].An[2] = tris[num_tris-1].An[2];
+	  		//Second vertex of second triangle
+      		tris[num_tris].B = index_vC;
+      		tris[num_tris].Bn = tris[num_tris-1].Cn;
 
-	  //SECOND VERTEX OF SECOND TRIANGLE
-      		tris[num_tris].B[0] = x[index_vC];
-      		tris[num_tris].B[1] = y[index_vC];
-      		tris[num_tris].B[2] = z[index_vC];
 
-      		tris[num_tris].Bn[0] = tris[num_tris-1].Cn[0];
-      		tris[num_tris].Bn[1] = tris[num_tris-1].Cn[1];
-      		tris[num_tris].Bn[2] = tris[num_tris-1].Cn[2];
+	  		//Third vertex of second triangle
+      		tris[num_tris].C = index_vD;
+      		tris[num_tris].Cn = index_vn;
 
-	  //THIRD VERTEX OF SECOND TRIANGLE
-      		tris[num_tris].C[0] = x[index_vD];
-      		tris[num_tris].C[1] = y[index_vD];
-      		tris[num_tris].C[2] = z[index_vD];
-
-      		tris[num_tris].Cn[0] = xnormal[index_vn];
-      		tris[num_tris].Cn[1] = ynormal[index_vn];
-      		tris[num_tris].Cn[2] = znormal[index_vn];
       	}
       }
       tris[num_tris].mtl.index = current_mat;
@@ -624,8 +476,6 @@ int read_obj_file(const char *fname)
       fgets(name, 100, f); //skip the line
   }
 }
-free(x);
-free(y);
 SDL_Log("Triangles: %d\n", num_tris);
 SDL_Log("Finished loading %s\n", fname);
 return 1;
