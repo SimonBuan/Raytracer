@@ -14,13 +14,13 @@ char *dir; //Directory path of the current obj file
 int num_tris, num_mats, num_vn, num_v;
 int current_mat = -1;
 
-double x[100000], y[100000], z[100000], xnormal[50000], ynormal[50000], znormal[50000];
-double u[50000], v[50000], w[50000];
-Triangle tris[75000];
+double *x, *y, *z, *xnormal, *ynormal, *znormal;
+double *u, *v, *w;
+Triangle *tris;
 Material mats[100];
 
-double x_world[100000], y_world[100000], z_world[100000];
-double xnormal_world[50000], ynormal_world[50000], znormal_world[50000];
+double *x_world, *y_world, *z_world;
+double *xnormal_world, *ynormal_world, *znormal_world;
 
 int get_face_format(FILE *f){
   //Finds the format and info provided for the current face
@@ -85,6 +85,7 @@ void center_and_scale_object()
   z_min = z_max = z[1];
 
   int i ;
+
   for (i = 1 ; i <= num_v; i++) {
     xc += x[i]; yc += y[i]; zc += z[i];
     
@@ -133,7 +134,6 @@ void init_mat(Material mat)
 }
 
 int read_mtl_file(char *fname){
-	
   //Parses .mtl material file
 	FILE *f;
 	SDL_Surface *image;
@@ -151,94 +151,273 @@ int read_mtl_file(char *fname){
 			init_mat(mats[num_mats]);
 			num_mats++;
 		}
-    else if(strcmp(keyword, "Ka") == 0){//ambient rgb
-    	fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ka[0], &mats[num_mats-1].Ka[1], &mats[num_mats-1].Ka[2]);
-    }
-    else if(strcmp(keyword, "Kd") == 0){//diffuse rgb
-    	fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Kd[0], &mats[num_mats-1].Kd[1], &mats[num_mats-1].Kd[2]);
-    }
-    else if(strcmp(keyword, "Ks") == 0){//specular rgb
-    	fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ks[0], &mats[num_mats-1].Ks[1], &mats[num_mats-1].Ks[2]);
-    }
-    else if(strcmp(keyword, "Ke") == 0){//specular rgb
-    	fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ke[0], &mats[num_mats-1].Ke[1], &mats[num_mats-1].Ke[2]);
-    }
-    else if(strcmp(keyword, "map_Ka") == 0){//ambient texture map
-    	fscanf(f, "%s", name);
-    	strcpy(path, dir);
-    	strcat(path, name);
-    	image = IMG_Load(path);
-    	if(!image)
-    	{
-    		SDL_Log("IMG_Load: %s\n", IMG_GetError());
-    	}
-    	else
-    	{
-    		mats[num_mats-1].map_Ka = image;
-    	}
-    }
-    else if(strcmp(keyword, "map_Kd") == 0){//diffuse texture map
-    	fscanf(f, "%s", name);
-    	strcpy(path, dir);
-    	strcat(path, name);
-    	image = IMG_Load(path);
-    	if(!image)
-    	{
-    		SDL_Log("IMG_Load: %s\n", IMG_GetError());
-    	}
-    	else
-    	{
-    		mats[num_mats-1].map_Kd = image;
-    	}
-    }
-    else if(strcmp(keyword, "map_Ks") == 0){//specular texture map
-    	fscanf(f, "%s", name);
-    	strcpy(path, dir);
-    	strcat(path, name);
-    	image = IMG_Load(path);
-    	if(!image)
-    	{
-    		SDL_Log("IMG_Load: %s\n", IMG_GetError());
-    	}
-    	else
-    	{
-    		mats[num_mats-1].map_Ks = image;
-    	}
-    }
-    else if(strcmp(keyword, "map_bump") == 0){//specular texture map
-    	fgets(name, 100, f);
-    }
-    else if(strcmp(keyword, "Tr") == 0){
-    	fscanf(f, "%lf", &dump);
-    }
-    else if(strcmp(keyword, "Tf") == 0){
-    	fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Tf[0], &mats[num_mats-1].Tf[1], &mats[num_mats-1].Tf[2]);
-    }
-    else if(strcmp(keyword, "illum") == 0){
-    	fscanf(f, "%d", &mats[num_mats-1].illum);
-    }
-    else if(strcmp(keyword, "Ns") == 0){
-    	fscanf(f, "%lf", &mats[num_mats-1].Ns);
-    }
-    else if(strcmp(keyword, "Ni") == 0){
-    	fscanf(f, "%lf" , &mats[num_mats-1].Ni);
-    }
-    else if(strcmp(keyword, "d") == 0){
-    	fscanf(f,  "%lf", &mats[num_mats-1].d);
-    }
-    else if(strcmp(keyword, "#") == 0){//comment
-    	fgets(name, 100, f);
-    }
-    else{
-    	fgets(name, 100, f);
-    }
+		else if(strcmp(keyword, "Ka") == 0){//ambient rgb
+			//SDL_Log("Path: %s\n", dir);
+			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ka[0], &mats[num_mats-1].Ka[1], &mats[num_mats-1].Ka[2]);
+			//SDL_Log("Path: %s\n", dir);
+		}
+		else if(strcmp(keyword, "Kd") == 0){//diffuse rgb
+			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Kd[0], &mats[num_mats-1].Kd[1], &mats[num_mats-1].Kd[2]);
+		}
+		else if(strcmp(keyword, "Ks") == 0){//specular rgb
+			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ks[0], &mats[num_mats-1].Ks[1], &mats[num_mats-1].Ks[2]);
+		}
+		else if(strcmp(keyword, "Ke") == 0){//specular rgb
+			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ke[0], &mats[num_mats-1].Ke[1], &mats[num_mats-1].Ke[2]);
+		}
+		else if(strcmp(keyword, "map_Ka") == 0){//ambient texture map
+			fscanf(f, "%s", name);
+			strcpy(path, dir);
+			strcat(path, name);
+			image = IMG_Load(path);
+			if(!image)
+			{
+				SDL_Log("IMG_Load: %s\n", IMG_GetError());
+			}
+			else
+			{
+				mats[num_mats-1].map_Ka = image;
+			}
+		}
+		else if(strcmp(keyword, "map_Kd") == 0){//diffuse texture map
+			fscanf(f, "%s", name);
+			strcpy(path, dir);
+			strcat(path, name);
+			image = IMG_Load(path);
+			if(!image)
+			{
+				SDL_Log("IMG_Load: %s\n", IMG_GetError());
+			}
+			else
+			{
+				mats[num_mats-1].map_Kd = image;
+			}
+		}
+		else if(strcmp(keyword, "map_Ks") == 0){//specular texture map
+			fscanf(f, "%s", name);
+			strcpy(path, dir);
+			strcat(path, name);
+			image = IMG_Load(path);
+			if(!image)
+			{
+				SDL_Log("IMG_Load: %s\n", IMG_GetError());
+			}
+			else
+			{
+				mats[num_mats-1].map_Ks = image;
+			}
+		}
+		else if(strcmp(keyword, "map_bump") == 0){//specular texture map
+			fgets(name, 100, f);
+		}
+		else if(strcmp(keyword, "Tr") == 0){
+			fscanf(f, "%lf", &dump);
+		}
+		else if(strcmp(keyword, "Tf") == 0){
+			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Tf[0], &mats[num_mats-1].Tf[1], &mats[num_mats-1].Tf[2]);
+		}
+		else if(strcmp(keyword, "illum") == 0){
+			fscanf(f, "%d", &mats[num_mats-1].illum);
+		}
+		else if(strcmp(keyword, "Ns") == 0){
+			fscanf(f, "%lf", &mats[num_mats-1].Ns);
+		}
+		else if(strcmp(keyword, "Ni") == 0){
+			fscanf(f, "%lf" , &mats[num_mats-1].Ni);
+		}
+		else if(strcmp(keyword, "d") == 0){
+			fscanf(f,  "%lf", &mats[num_mats-1].d);
+		}
+		else if(strcmp(keyword, "#") == 0){//comment
+			fgets(name, 100, f);
+		}
+		else{
+			fgets(name, 100, f);
+		}
+	}
+	return 1;
 }
-return 1;
+
+//Scans through the .obj file and allocates the necessary memory
+//Exits if it reads faces with more than 4 vertices
+void allocate_mem(const char *fname){
+	num_tris = num_mats = num_vn = 0;
+	int num_vt = 0;
+	int format;
+	int a[3];
+
+	FILE *f;
+	char keyword[100];
+
+	f = fopen(fname, "rb");
+	if(f == NULL)
+	{
+		SDL_Log("can't open file, %s\n", fname);
+		exit(1);
+	}
+
+	while(fscanf(f, "%s", keyword) == 1){
+		if(strcmp(keyword, "v") == 0){
+			num_v++;
+		}
+		else if(strcmp(keyword, "vt") == 0){
+			num_vt++;
+		}
+		else if(strcmp(keyword, "vn") == 0){
+			num_vn++;
+		}
+		else if(strcmp(keyword, "f") == 0){
+			format = get_face_format(f);
+			if(format == 1){//Face format: v v v
+				//A face must have at least three vertices, so skip past these and increment triangle count
+				fscanf(f, "%d %d %d", &a[0], &a[1], &a[2]);
+				num_tris++;
+
+				//Will need to calculate and add 1 normal for the face
+				num_vn++;
+
+				if(fscanf(f, "%d", &a[0]) == 1){
+					//Face has a fourth vertex, means a quadrilateral
+					//Will be triangulated into two triangles
+					num_tris++;
+
+
+					if(fscanf(f, "%d", &a[0]) == 1){
+						//Face has a fifth vertex
+						//Program can't currently handle faces with more than 4 vertices
+						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
+						exit(1);
+					}
+				}
+			}
+			else if(format == 2){//Face format: v/vt v/vt v/vt
+				//Skip past the first three vertices
+				fscanf(f, "%d/%d", &a[0], &a[1]);
+				fscanf(f, "%d/%d", &a[0], &a[1]);
+				fscanf(f, "%d/%d", &a[0], &a[1]);
+				num_tris++;
+
+				//Will need to calculate and add 1 normal for the face
+				num_vn++;
+
+				if(fscanf(f, "%d/%d", &a[0], &a[1]) == 2){
+					//Face has a fourth vertex, means a quadrilateral
+					num_tris++;
+					if(fscanf(f, "%d/%d", &a[0], &a[1]) == 2){
+						//Fifth vertex
+						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
+						exit(1);
+					}
+				}
+			}
+			else if(format == 3){//Face format: v/vt/vn  v/vt/vn v/vt/vn
+				//Skip past the first three vertices
+				fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]);
+				fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]);
+				fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]);
+				num_tris++;
+
+				if(fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]) == 3){
+					//Face has a fourth vertex, means a quadrilateral
+					num_tris++;
+					if(fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]) == 3){
+						//Fifth vertex
+						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
+						exit(1);
+					}
+				}
+			}
+			else if(format == 4){//Face format: v//vn v//vn v//vn
+				//Skip past the first three vertices
+				fscanf(f, "%d//%d", &a[0], &a[1]);
+				fscanf(f, "%d//%d", &a[0], &a[1]);
+				fscanf(f, "%d//%d", &a[0], &a[1]);
+				num_tris++;
+
+				if(fscanf(f, "%d//%d", &a[0], &a[1]) == 2){
+					//Face has a fourth vertex, means a quadrilateral
+					num_tris++;
+					if(fscanf(f, "%d//%d", &a[0], &a[1]) == 2){
+						//Fifth vertex
+						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
+						exit(1);
+					}
+				}
+			}
+		}
+		else{
+			//Read something that is not currently being allocated memory
+			fgets(keyword, 100, f); //skip the line
+		}
+	}
+	//.obj is 1-indexed so need to be 1 larget than the number of vertices
+	num_v++; num_vn++; num_vt++;
+
+	//Vertices in object space
+	x = (double *) malloc(num_v * sizeof(double));
+	y = (double *) malloc(num_v * sizeof(double));
+	z = (double *) malloc(num_v * sizeof(double));
+
+	if((x == NULL) || (y == NULL) || (z == NULL)){
+		SDL_Log("Unable to allocate memory for vertices\n");
+		exit(1);
+	}
+
+	//Vertices in world space
+	x_world = (double *) malloc(num_v * sizeof(double));
+	y_world = (double *) malloc(num_v * sizeof(double));
+	z_world = (double *) malloc(num_v * sizeof(double));
+	
+	if((x_world == NULL) || (y_world == NULL) || (z_world == NULL)){
+		SDL_Log("Unable to allocate memory for vertices\n");
+		exit(1);
+	}
+	
+	//uv texture coordinates
+	u = (double *) malloc(num_vt * sizeof(double));
+	v = (double *) malloc(num_vt * sizeof(double));
+	w = (double *) malloc(num_vt * sizeof(double));
+
+	if((u == NULL) || (v == NULL) || (w == NULL)){
+		SDL_Log("Unable to allocate memory for texure coordinates\n");
+		exit(1);
+	}
+
+	//Normal vectors in object space
+	xnormal = (double *) malloc(num_vn * sizeof(double));
+	ynormal = (double *) malloc(num_vn * sizeof(double));
+	znormal = (double *) malloc(num_vn * sizeof(double));
+
+	if((xnormal == NULL) || (ynormal == NULL) || (znormal == NULL)){
+		SDL_Log("Unable to allocate memory for normal vectors\n");
+		exit(1);
+	}
+	
+	//Normal vectors in world space
+	xnormal_world = (double *) malloc(num_vn * sizeof(double));
+	ynormal_world = (double *) malloc(num_vn * sizeof(double));
+	znormal_world = (double *) malloc(num_vn * sizeof(double));
+
+	if((xnormal_world == NULL) || (ynormal_world == NULL) || (znormal_world == NULL)){
+		SDL_Log("Unable to allocate memory for normal vectors\n");
+		exit(1);
+	}
+	
+	tris = (Triangle *) malloc(num_tris * sizeof(Triangle));
+	
+	if(tris == NULL){
+		SDL_Log("Unable to allocate memory for triangles\n");
+		exit(1);
+	}
+
 }
 
 int read_obj_file(const char *fname)
 {
   //Parses .obj object file
+
+	allocate_mem(fname);
+
 	num_tris = 0; num_mats = 0; num_vn = 0; num_v = 0;
 	int num_vt = 0; 
 	int index_vA, index_vB, index_vC, index_vD, index_vt, index_vn, i;
@@ -257,6 +436,7 @@ int read_obj_file(const char *fname)
 
 	dir = dirname(dup);
 	strcat(dir, &ch);
+	
 
 	//Need to read as binary for ftell and fseek to work properly on Windows
 	f = fopen(fname, "rb");
@@ -497,6 +677,7 @@ int read_obj_file(const char *fname)
       fgets(name, 100, f); //skip the line
   }
 }
+
 center_and_scale_object();
 SDL_Log("Triangles: %d\n", num_tris);
 SDL_Log("Finished loading %s\n", fname);
