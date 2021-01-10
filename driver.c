@@ -19,12 +19,12 @@ int main(int argc, char **argv)
   double degrees_of_half_angle ;
 
   degrees_of_half_angle = 30 ;
-  read_obj_file("./objects/pawn/12931_WoodenChessPawnSideA_v1_l3.obj");
+  read_obj_file("./objects/shoes/11743_Soccer_Shoes_v1_l3.obj");
 
   double tan_half = tan(degrees_of_half_angle*M_PI/180);
 
   int s,e,frame_number ;
-  s = 5 ; e = 60 ;
+  s = 10 ; e = 60 ;
   for(frame_number = s; frame_number < e; frame_number++){
     SDL_Log("frame: %d\n", frame_number);
     set_rgb(0,0,0);
@@ -57,9 +57,10 @@ int main(int argc, char **argv)
 
     double light_in_world_space[3] ;
     light_in_world_space[0] =    300 ;
-    light_in_world_space[1] =    2000 ;
-    light_in_world_space[2] =    0 ;
+    light_in_world_space[1] =    200 ;
+    light_in_world_space[2] =    300 ;
     M3d_mat_mult_pt(light_in_eye_space, vm, light_in_world_space) ;
+
 
     double Ka[3], Kd[3], Ks[3];
 
@@ -76,9 +77,11 @@ int main(int argc, char **argv)
     M3d_mat_mult(obmat, vm, m) ;
     M3d_mat_mult(obinv, mi, vi) ;
     
-    //Transforming vertices and normals from object space to world space
-    M3d_mat_mult_points(x_world, y_world, z_world, obmat, x, y, z, num_v + 1);
-    M3d_mat_mult_points(xnormal_world, ynormal_world, znormal_world, obmat, xnormal, ynormal, znormal, num_v + 1);
+    //Transforming vertices and normals from object space to eye space
+    M3d_mat_mult_points(x, y, z, obmat, x, y, z, num_v + 1);
+    M3d_mat_mult_points(xnormal, ynormal, znormal, obmat, xnormal, ynormal, znormal, num_vn + 1);
+
+    
 
     ///////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////
@@ -158,12 +161,14 @@ int main(int argc, char **argv)
       } // end for y_pix
     } // end for x_pix
 
-
     SDL_RenderPresent(S_Renderer) ;
     char fname[200] ;
     sprintf(fname, "pic/pic%04d.bmp",frame_number) ;
-    SDL_Log("1\n");
+    
     save_image_to_file(fname, SCREEN_WIDTH, SCREEN_HEIGHT) ;
-    SDL_Log("2\n");
+
+    //Transforming vertices and normals back to object space
+    M3d_mat_mult_points(x, y, z, obinv, x, y, z, num_v + 1);
+    M3d_mat_mult_points(xnormal, ynormal, znormal, obinv, xnormal, ynormal, znormal, num_vn + 1);
   } // end for frame_number
 }
