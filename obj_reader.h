@@ -40,14 +40,14 @@ typedef struct Triangle{
 extern int num_tris, num_mats, num_vn, num_v;
 
 extern double *x, *y, *z, *xnormal, *ynormal, *znormal;
-extern double *u, *v, *w;
+extern double *u, *v;
 extern Triangle *tris;
-extern Material mats[];
-
-extern double *x_world, *y_world, *z_world;
-extern double *xnormal_world, *ynormal_world, *znormal_world;
+extern Material *mats;
 
 //Parses .obj object file and saves it to memory
 int read_obj_file(const char *fname);
+
+//Frees all memory used by the current object
+void close_object();
 
 #endif

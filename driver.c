@@ -19,12 +19,12 @@ int main(int argc, char **argv)
   double degrees_of_half_angle ;
 
   degrees_of_half_angle = 30 ;
-  read_obj_file("./objects/shoes/11743_Soccer_Shoes_v1_l3.obj");
+  read_obj_file("./objects/box/box.obj");
 
   double tan_half = tan(degrees_of_half_angle*M_PI/180);
 
   int s,e,frame_number ;
-  s = 10 ; e = 60 ;
+  s = 0 ; e = 60 ;
   for(frame_number = s; frame_number < e; frame_number++){
     SDL_Log("frame: %d\n", frame_number);
     set_rgb(0,0,0);
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     int x_pix, y_pix;
     for(x_pix = 0; x_pix < SCREEN_WIDTH; x_pix++)
     {
-      SDL_Log("x: %d/%d\n", x_pix + 1, SCREEN_WIDTH);
+      SDL_Log("x: %d\n", x_pix);
       for(y_pix = 0; y_pix < SCREEN_HEIGHT; y_pix++)
       {
         screen_pt[0] = x_pix - SCREEN_WIDTH/2;
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
         s = intersect_all_triangles(origin, screen_pt, uvt, point, normal, obinv) ;
         if (s == -1) 
         {
-         argb[0] = argb[1] = argb[2] = 0 ;
+         argb[0] = argb[1] = argb[2] = 0.5 ;
         } 
        else 
        {
@@ -125,6 +125,7 @@ int main(int argc, char **argv)
 
             if(tris[s].mtl.map_Kd)
             {
+                            
               get_rgb(tris[s].mtl.map_Kd, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Kd);
             }
             else{
@@ -171,4 +172,7 @@ int main(int argc, char **argv)
     M3d_mat_mult_points(x, y, z, obinv, x, y, z, num_v + 1);
     M3d_mat_mult_points(xnormal, ynormal, znormal, obinv, xnormal, ynormal, znormal, num_vn + 1);
   } // end for frame_number
+
+  close_graphics();
+  close_object();
 }

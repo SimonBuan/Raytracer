@@ -15,12 +15,9 @@ int num_tris, num_mats, num_vn, num_v;
 int current_mat = -1;
 
 double *x, *y, *z, *xnormal, *ynormal, *znormal;
-double *u, *v, *w;
+double *u, *v;
 Triangle *tris;
-Material mats[100];
-
-double *x_world, *y_world, *z_world;
-double *xnormal_world, *ynormal_world, *znormal_world;
+Material *mats;
 
 int get_face_format(FILE *f){
   //Finds the format and info provided for the current face
@@ -74,7 +71,7 @@ void find_and_add_normal(int A, int B, int C){
 void center_and_scale_object()
 {
   // center the object at the origin
-  // scale the object to fit inside of a 7x7x7 bounding box
+  // scale the object to fit inside of a 15x15x15 bounding box
   int index_A, index_B, index_C;
   double xc,yc,zc ;
   double x_min, y_min, z_min, x_max, y_max, z_max;
@@ -112,8 +109,8 @@ void center_and_scale_object()
   else if(yd > zd) delta = yd;
   else delta = zd;
 
-  //Set scaling factor based on largest distance two fit all vertices in a 7x7x7 cube.
-  sf = 7/delta;
+  //Set scaling factor based on largest distance to fit all vertices in a 15x15x15 cube.
+  sf = 15/delta;
 
   for (i = 1 ; i <= num_v ; i++) {
     x[i] -= xc;  y[i] -= yc;  z[i] -= zc;
@@ -121,16 +118,42 @@ void center_and_scale_object()
   }
 }
 
-void init_mat(Material mat)
+void init_mat()
 {
+	mats[num_mats].index = num_mats;
+	
 	//Default colors of materials
-	mat.Ka[0] = 1.0; mat.Ka[1] = 1.0; mat.Ka[2] = 1.0;
-	mat.Kd[0] = 1.0; mat.Kd[1] = 1.0; mat.Kd[2] = 1.0;
-	mat.Ks[0] = 1.0; mat.Ks[1] = 1.0; mat.Ks[2] = 1.0;
+	mats[num_mats].Ka[0] = 1.0; mats[num_mats].Ka[1] = 1.0; mats[num_mats].Ka[2] = 1.0;
+	mats[num_mats].Kd[0] = 1.0; mats[num_mats].Kd[1] = 1.0; mats[num_mats].Kd[2] = 1.0;
+	mats[num_mats].Ks[0] = 1.0; mats[num_mats].Ks[1] = 1.0; mats[num_mats].Ks[2] = 1.0;
 
-	mat.map_Ka = NULL;
-	mat.map_Kd = NULL;
-	mat.map_Ks = NULL;
+	mats[num_mats].map_Ka = NULL;
+	mats[num_mats].map_Kd = NULL;
+	mats[num_mats].map_Ks = NULL;
+}
+
+//Returns the number of new materials in .mtl file at fname
+int allocate_mtl_mem(char *fname){
+	FILE *f;
+	char keyword[100];
+
+	int num = 0;
+	
+	f = fopen(fname, "rb");
+	if(f == NULL){
+		SDL_Log("can't open file, %s\n", fname);
+	}
+	while(fscanf(f, "%s", keyword) == 1){
+		if(strcmp(keyword, "newmtl") == 0){
+			num++;
+		}
+		else{
+			//Don't need to allocate memory for anything else, 
+			//skip line
+			fgets(keyword, 100, f);
+		}
+	}
+	return num;
 }
 
 int read_mtl_file(char *fname){
@@ -148,13 +171,12 @@ int read_mtl_file(char *fname){
 	while(fscanf(f, "%s", keyword) == 1){
 		if(strcmp(keyword, "newmtl") == 0){
 			fscanf(f, "%s", mats[num_mats].name);
-			init_mat(mats[num_mats]);
+			init_mat();
+
 			num_mats++;
 		}
 		else if(strcmp(keyword, "Ka") == 0){//ambient rgb
-			//SDL_Log("Path: %s\n", dir);
 			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ka[0], &mats[num_mats-1].Ka[1], &mats[num_mats-1].Ka[2]);
-			//SDL_Log("Path: %s\n", dir);
 		}
 		else if(strcmp(keyword, "Kd") == 0){//diffuse rgb
 			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Kd[0], &mats[num_mats-1].Kd[1], &mats[num_mats-1].Kd[2]);
@@ -194,6 +216,7 @@ int read_mtl_file(char *fname){
 			}
 		}
 		else if(strcmp(keyword, "map_Ks") == 0){//specular texture map
+			if(num_tris == 17744)
 			fscanf(f, "%s", name);
 			strcpy(path, dir);
 			strcat(path, name);
@@ -207,7 +230,7 @@ int read_mtl_file(char *fname){
 				mats[num_mats-1].map_Ks = image;
 			}
 		}
-		else if(strcmp(keyword, "map_bump") == 0){//specular texture map
+		else if(strcmp(keyword, "map_bump") == 0){
 			fgets(name, 100, f);
 		}
 		else if(strcmp(keyword, "Tr") == 0){
@@ -247,7 +270,7 @@ void allocate_mem(const char *fname){
 	int a[3];
 
 	FILE *f;
-	char keyword[100];
+	char keyword[100], path[100];
 
 	f = fopen(fname, "rb");
 	if(f == NULL)
@@ -345,6 +368,14 @@ void allocate_mem(const char *fname){
 				}
 			}
 		}
+		else if(strcmp(keyword, "mtllib") == 0){
+			fscanf(f, "%s", keyword);
+    		strcpy(path, dir);
+			
+    		strcat(path, keyword);
+			
+    		num_mats += allocate_mtl_mem(path);
+		}
 		else{
 			//Read something that is not currently being allocated memory
 			fgets(keyword, 100, f); //skip the line
@@ -362,23 +393,12 @@ void allocate_mem(const char *fname){
 		SDL_Log("Unable to allocate memory for vertices\n");
 		exit(1);
 	}
-
-	//Vertices in world space
-	x_world = (double *) malloc(num_v * sizeof(double));
-	y_world = (double *) malloc(num_v * sizeof(double));
-	z_world = (double *) malloc(num_v * sizeof(double));
-	
-	if((x_world == NULL) || (y_world == NULL) || (z_world == NULL)){
-		SDL_Log("Unable to allocate memory for vertices\n");
-		exit(1);
-	}
 	
 	//uv texture coordinates
 	u = (double *) malloc(num_vt * sizeof(double));
 	v = (double *) malloc(num_vt * sizeof(double));
-	w = (double *) malloc(num_vt * sizeof(double));
 
-	if((u == NULL) || (v == NULL) || (w == NULL)){
+	if((u == NULL) || (v == NULL)){
 		SDL_Log("Unable to allocate memory for texure coordinates\n");
 		exit(1);
 	}
@@ -393,20 +413,17 @@ void allocate_mem(const char *fname){
 		exit(1);
 	}
 	
-	//Normal vectors in world space
-	xnormal_world = (double *) malloc(num_vn * sizeof(double));
-	ynormal_world = (double *) malloc(num_vn * sizeof(double));
-	znormal_world = (double *) malloc(num_vn * sizeof(double));
-
-	if((xnormal_world == NULL) || (ynormal_world == NULL) || (znormal_world == NULL)){
-		SDL_Log("Unable to allocate memory for normal vectors\n");
-		exit(1);
-	}
-	
 	tris = (Triangle *) malloc(num_tris * sizeof(Triangle));
 	
 	if(tris == NULL){
 		SDL_Log("Unable to allocate memory for triangles\n");
+		exit(1);
+	}
+
+	mats = (Material *) malloc(num_mats * sizeof(Material));
+
+	if(mats == NULL){
+		SDL_Log("Unable to allocate memory for materials\n");
 		exit(1);
 	}
 
@@ -416,6 +433,16 @@ int read_obj_file(const char *fname)
 {
   //Parses .obj object file
 
+	//Make duplicate of fname to be used to find directory name
+	char *dup = strdup(fname);
+	
+
+	//Find directory of obj file needed to find related .mtl files and maps
+	dir = dirname(dup);
+	char ch[2]; 
+	ch[0] = '/'; ch[1] = '\0';
+	strcat(dir, ch);
+	
 	allocate_mem(fname);
 
 	num_tris = 0; num_mats = 0; num_vn = 0; num_v = 0;
@@ -428,15 +455,10 @@ int read_obj_file(const char *fname)
 	char name[100];
 	char path[100];
 
-	//Make duplicate of fname to be used to find directory name
-	char *dup = strdup(fname);
-	char ch = '/';
+	
 
 	SDL_Log("Loading obj file %s\n", fname);
 
-	dir = dirname(dup);
-	strcat(dir, &ch);
-	
 
 	//Need to read as binary for ftell and fseek to work properly on Windows
 	f = fopen(fname, "rb");
@@ -448,15 +470,15 @@ int read_obj_file(const char *fname)
 	num_tris = 0;
 	while(fscanf(f, "%s", keyword) == 1)
 	{
-		if(strcmp(keyword, "v") == 0)
+	if(strcmp(keyword, "v") == 0)
     {//geometric vertex
     	num_v++;
-    	fscanf(f, "%lf %lf %lf %lf", &x[num_v], &y[num_v], &z[num_v], &w[num_v]);
+    	fscanf(f, "%lf %lf %lf %lf", &x[num_v], &y[num_v], &z[num_v]);
     }
     else if(strcmp(keyword, "vt") == 0)
     {//texture vertex
     	num_vt++;
-    	fscanf(f, "%lf %lf %lf", &u[num_vt], &v[num_vt], &w[num_vt]);
+    	fscanf(f, "%lf %lf", &u[num_vt], &v[num_vt]);
     }
     else if(strcmp(keyword, "vn") == 0)
     {//vertex normal
@@ -481,6 +503,8 @@ int read_obj_file(const char *fname)
     	{
     		tris[num_tris].mtl = mats[current_mat];
     	}
+	
+
       //Checking what information is included for the face
     	format = get_face_format(f);
 
@@ -682,4 +706,22 @@ center_and_scale_object();
 SDL_Log("Triangles: %d\n", num_tris);
 SDL_Log("Finished loading %s\n", fname);
 return 1;
+}
+
+
+//Frees all memory used by the current object
+void close_object(){
+	free(x);
+	free(y);
+	free(z);
+
+	free(xnormal);
+	free(ynormal);
+	free(znormal);
+
+	free(u);
+	free(v);
+
+	free(tris);
+	free(mats);
 }
