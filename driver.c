@@ -19,12 +19,12 @@ int main(int argc, char **argv)
   double degrees_of_half_angle ;
 
   degrees_of_half_angle = 30 ;
-  read_obj_file("./objects/box/box.obj");
+  read_obj_file("./objects/taxi/13914_Taxi_v2_L1.obj");
 
   double tan_half = tan(degrees_of_half_angle*M_PI/180);
 
   int s,e,frame_number ;
-  s = 0 ; e = 60 ;
+  s = 10 ; e = 15 ;
   for(frame_number = s; frame_number < e; frame_number++){
     SDL_Log("frame: %d\n", frame_number);
     set_rgb(0,0,0);
@@ -79,7 +79,6 @@ int main(int argc, char **argv)
     
     //Transforming vertices and normals from object space to eye space
     M3d_mat_mult_points(x, y, z, obmat, x, y, z, num_v + 1);
-    M3d_mat_mult_points(xnormal, ynormal, znormal, obmat, xnormal, ynormal, znormal, num_vn + 1);
 
     
 
@@ -170,7 +169,6 @@ int main(int argc, char **argv)
 
     //Transforming vertices and normals back to object space
     M3d_mat_mult_points(x, y, z, obinv, x, y, z, num_v + 1);
-    M3d_mat_mult_points(xnormal, ynormal, znormal, obinv, xnormal, ynormal, znormal, num_vn + 1);
   } // end for frame_number
 
   close_graphics();
