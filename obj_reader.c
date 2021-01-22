@@ -112,10 +112,13 @@ void center_and_scale_object()
   //Set scaling factor based on largest distance to fit all vertices in a 15x15x15 cube.
   sf = 15/delta;
 
-  for (i = 1 ; i <= num_v ; i++) {
-    x[i] -= xc;  y[i] -= yc;  z[i] -= zc;
-    x[i] *= sf;  y[i] *= sf;  z[i] *= sf;
-  }
+  double t[4][4], s[4][4], m[4][4];
+
+  M3d_make_translation(t, xc, yc, zc);
+  M3d_make_scaling(s, sf, sf, sf);
+  M3d_mat_mult(m, s, t);
+
+  M3d_mat_mult_points(x, y, z, m, x, y, z, num_v + 1);
 }
 
 void init_mat()
