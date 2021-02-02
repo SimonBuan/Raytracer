@@ -114,7 +114,7 @@ void center_and_scale_object()
 
   double t[4][4], s[4][4], m[4][4];
 
-  M3d_make_translation(t, xc, yc, zc);
+  M3d_make_translation(t, -xc, -yc, -zc);
   M3d_make_scaling(s, sf, sf, sf);
   M3d_mat_mult(m, s, t);
 

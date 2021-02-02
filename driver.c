@@ -19,7 +19,7 @@ int main(int argc, char **argv)
   double degrees_of_half_angle ;
 
   degrees_of_half_angle = 30 ;
-  read_obj_file("./objects/taxi/13914_Taxi_v2_L1.obj");
+  read_obj_file("./objects/cat/12221_Cat_v1_l3.obj");
 
   double tan_half = tan(degrees_of_half_angle*M_PI/180);
 

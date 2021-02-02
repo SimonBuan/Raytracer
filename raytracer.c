@@ -3,19 +3,22 @@
 #include "light_model.h"
 
 double intersect_single_triangle(double S[3], double E[3], double uv[2], Triangle tri){
-  int index_A = tri.A;
-  int index_B = tri.B;
-  int index_C = tri.C;
-  
   double AB[3], AC[3], ES[3], AS[3];
   double A[3], B[3], C[3];
   double t;
 
-  
-  A[0] = x_world[index_A]; A[1] = y_world[index_A]; A[2] = z_world[index_A];
-  B[0] = x_world[index_B]; B[1] = y_world[index_B]; B[2] = z_world[index_B];
-  C[0] = x_world[index_C]; C[1] = y_world[index_C]; C[2] = z_world[index_C];
+  //Get the indeces of the vertices in the triangle
+  int index_A = tri.A;
+  int index_B = tri.B;
+  int index_C = tri.C;
 
+  //Get the positions of the vertices from corresponding index
+  A[0] = x[index_A]; A[1] = y[index_A]; A[2] = z[index_A];
+  B[0] = x[index_B]; B[1] = y[index_B]; B[2] = z[index_B];
+  C[0] = x[index_C]; C[1] = y[index_C]; C[2] = z[index_C];
+
+  //Find vectors between points in triangle, 
+  //as well as with start and end of ray
   AB[0] = B[0] - A[0]; AB[1] = B[1] - A[1]; AB[2] = B[2] - A[2];
   AC[0] = C[0] - A[0]; AC[1] = C[1] - A[1]; AC[2] = C[2] - A[2];
   ES[0] = S[0] - E[0]; ES[1] = S[1] - E[1]; ES[2] = S[2] - E[2];
@@ -59,7 +62,7 @@ int intersect_all_triangles(double S[3], double E[3],
   uvt[2] = 1e50;
 
   for(i = 0; i  < num_tris; i++){
-
+    //Find the distance between start of ray and triangle-intersection point
     tempt = intersect_single_triangle(S, E, tempUV, tris[i]);
 
     if((tempt > 0) && (tempt < uvt[2])){
@@ -83,17 +86,17 @@ int intersect_all_triangles(double S[3], double E[3],
     int index_B = tris[closest].Bn;
     int index_C = tris[closest].Cn;
 
-    An[0] = xnormal_world[index_A];
-    An[1] = ynormal_world[index_A];
-    An[2] = znormal_world[index_A];
+    An[0] = xnormal[index_A];
+    An[1] = ynormal[index_A];
+    An[2] = znormal[index_A];
 
-    Bn[0] = xnormal_world[index_B];
-    Bn[1] = ynormal_world[index_B];
-    Bn[2] = znormal_world[index_B];
+    Bn[0] = xnormal[index_B];
+    Bn[1] = ynormal[index_B];
+    Bn[2] = znormal[index_B];
 
-    Cn[0] = xnormal_world[index_C];
-    Cn[1] = ynormal_world[index_C];
-    Cn[2] = znormal_world[index_C];
+    Cn[0] = xnormal[index_C];
+    Cn[1] = ynormal[index_C];
+    Cn[2] = znormal[index_C];
 
     //Interpolate between the normal at each vertex to find normal at intersection point
     interpolate_normal_vector (normal, An, Bn, Cn, uvt, obinv);
