@@ -11,6 +11,8 @@
 #include "raytracer.h"
 #include "graphic_tools.h"
 
+#include "mat_mult_kernel.h"
+
 int main(int argc, char** argv)
 {
     init_graphics(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -78,7 +80,7 @@ int main(int argc, char** argv)
         M3d_mat_mult(obinv, mi, vi);
 
         //Transforming vertices and normals from object space to eye space
-        M3d_mat_mult_points(x, y, z, obmat, x, y, z, num_v + 1);
+        mat_mult_device(x, y, z, obmat, x, y, z, num_v + 1);
 
 
 
@@ -168,7 +170,7 @@ int main(int argc, char** argv)
         save_image_to_file(fname, SCREEN_WIDTH, SCREEN_HEIGHT);
 
         //Transforming vertices and normals back to object space
-        M3d_mat_mult_points(x, y, z, obinv, x, y, z, num_v + 1);
+        mat_mult_device(x, y, z, obinv, x, y, z, num_v + 1);
     } // end for frame_number
 
     close_graphics();

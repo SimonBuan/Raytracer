@@ -4,6 +4,7 @@
 
 #include "M3d_matrix_tools.h"
 #include "obj_reader.h"
+#include "mat_mult_kernel.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -118,7 +119,7 @@ void center_and_scale_object()
 	M3d_make_scaling(s, sf, sf, sf);
 	M3d_mat_mult(m, s, t);
 
-	M3d_mat_mult_points(x, y, z, m, x, y, z, num_v + 1);
+	mat_mult_device(x, y, z, m, x, y, z, num_v + 1);
 }
 
 void init_mat()

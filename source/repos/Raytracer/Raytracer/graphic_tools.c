@@ -112,7 +112,7 @@ void set_rgb(double r, double g, double b)
 	SDL_SetRenderDrawColor(S_Renderer, r, g, b, 0xFF);
 }
 
-void save_image_to_file(const void* filename, int w, int h)
+void save_image_to_file(const char* filename, int w, int h)
 {
 	sshot = SDL_CreateRGBSurface(0, w, h, 32, rmask, gmask, bmask, amask);
 	SDL_RenderReadPixels(S_Renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
