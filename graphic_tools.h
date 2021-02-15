@@ -2,7 +2,6 @@
 #define _graphic_tools_h
 
 #include <SDL.h>
-extern SDL_Window* S_Window;
 
 //Window renderer
 extern SDL_Renderer* S_Renderer;
