@@ -12,3 +12,5 @@ Currently has the following limitations:
 ![Dog](https://i.imgur.com/wjs189q.png)
 
 ![Duck](https://i.imgur.com/Dxz6TPU.png)
+
+![Utah teapot](https://i.imgur.com/l3W3tWg.gif)
