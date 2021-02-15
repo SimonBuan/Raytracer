@@ -1,6 +1,7 @@
 #include "M3d_matrix_tools.h"
 #include <math.h>
-#include <stdio.h>
+#include "kernel.h"
+#include "obj_reader.h"
 
 // To support the light model :
 double light_in_eye_space[3];
@@ -39,6 +40,10 @@ int Light_Model(double Ka[3],
 	if (M3d_norm(L, L) == 0) return 0;
 	double NdotL = M3d_dot_product(N, L);
 
+	double shadow_S[3]; //Start of ray used for checking shadows
+	shadow_S[0] = p[0] - L[0] * 0.001;
+	shadow_S[1] = p[1] - L[1] * 0.001;
+	shadow_S[2] = p[2] - L[2] * 0.001;
 
 	double V[3]; //Vector from camera to point
 	V[0] = s[0] - p[0];
@@ -91,7 +96,7 @@ int Light_Model(double Ka[3],
 
 	return 1;
 }
-
+/*
 void interpolate_normal_vector(double N[3],
 	double Na[3],
 	double Nb[3],
@@ -113,4 +118,39 @@ void interpolate_normal_vector(double N[3],
 	N[1] = Ntemp[0] * obinv[0][1] + Ntemp[1] * obinv[1][1] + Ntemp[2] * obinv[2][1];
 	N[2] = Ntemp[0] * obinv[0][2] + Ntemp[1] * obinv[1][2] + Ntemp[2] * obinv[2][2];
 
+}*/
+
+//Interpolate normal vector based on uv-values
+//tri is the index of the triangle where intersection happened
+//resulting vector is stored in normal
+void interpolate_normal_vector(int tri, double uv[2], double obinv[4][4], double normal[3]) {
+	//Find normal vector information at the closest triangle
+	double An[3], Bn[3], Cn[3];
+	int index_A = tris[tri].An;
+	int index_B = tris[tri].Bn;
+	int index_C = tris[tri].Cn;
+
+	An[0] = xnormal[index_A];
+	An[1] = ynormal[index_A];
+	An[2] = znormal[index_A];
+
+	Bn[0] = xnormal[index_B];
+	Bn[1] = ynormal[index_B];
+	Bn[2] = znormal[index_B];
+
+	Cn[0] = xnormal[index_C];
+	Cn[1] = ynormal[index_C];
+	Cn[2] = znormal[index_C];
+
+	double Ntemp[3];
+
+	//Interpolating between the 3 normal vectors
+	Ntemp[0] = (1 - uv[0] - uv[1]) * An[0] + uv[0] * Bn[0] + uv[1] * Cn[0];
+	Ntemp[1] = (1 - uv[0] - uv[1]) * An[1] + uv[0] * Bn[1] + uv[1] * Cn[1];
+	Ntemp[2] = (1 - uv[0] - uv[1]) * An[2] + uv[0] * Bn[2] + uv[1] * Cn[2];
+
+	//Transforming normal to eye space
+	normal[0] = Ntemp[0] * obinv[0][0] + Ntemp[1] * obinv[1][0] + Ntemp[2] * obinv[2][0];
+	normal[1] = Ntemp[0] * obinv[0][1] + Ntemp[1] * obinv[1][1] + Ntemp[2] * obinv[2][1];
+	normal[2] = Ntemp[0] * obinv[0][2] + Ntemp[1] * obinv[1][2] + Ntemp[2] * obinv[2][2];
 }

@@ -8,6 +8,6 @@ extern "C" void mat_mult_device(
 	int numpoints);
 
 extern "C" int intersect_all_triangles_device(double S[3], double E[3],
-	double uvt[3], double point[3], double normal[3], double obinv[4][4]);
+	double uv[2], double point[3]);
 
 #endif
