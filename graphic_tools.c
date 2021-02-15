@@ -29,7 +29,7 @@ const int SCREEN_HEIGHT = 400;
 //Initializes SDL, and the graphics window and renderer
 //Sets render draw color to black
 //Returns 1 on success, 0 on failure
-int init_graphics(int w, int h)
+int init_graphics()
 {
 	SDL_Log("Initalizing graphics\n");
 	int success = true;
@@ -43,7 +43,7 @@ int init_graphics(int w, int h)
 	else
 	{
 		//Create window
-		S_Window = SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_SHOWN);
+		S_Window = SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 		if (S_Window == NULL)
 		{
 			SDL_Log("Window could not be created! SDL_Error: %s\n", SDL_GetError());
@@ -112,9 +112,9 @@ void set_rgb(double r, double g, double b)
 	SDL_SetRenderDrawColor(S_Renderer, r, g, b, 0xFF);
 }
 
-void save_image_to_file(const char* filename, int w, int h)
+void save_image_to_file(const char* filename)
 {
-	sshot = SDL_CreateRGBSurface(0, w, h, 32, rmask, gmask, bmask, amask);
+	sshot = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32, rmask, gmask, bmask, amask);
 	SDL_RenderReadPixels(S_Renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
 	SDL_SaveBMP(sshot, filename);
 	SDL_FreeSurface(sshot);

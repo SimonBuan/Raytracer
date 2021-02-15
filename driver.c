@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdint.h>
 #include <math.h>
 
 #include <SDL.h>
@@ -13,7 +12,7 @@
 
 int main(int argc, char** argv)
 {
-    init_graphics(SCREEN_WIDTH, SCREEN_HEIGHT);
+    init_graphics();
     init_IMG();
 
     double degrees_of_half_angle;
@@ -29,6 +28,7 @@ int main(int argc, char** argv)
         SDL_Log("frame: %d\n", frame_number);
         set_rgb(0, 0, 0);
         SDL_RenderClear(S_Renderer);
+
 
         double eangle = 2 * M_PI * frame_number / e;
         double eye[3];
@@ -167,7 +167,7 @@ int main(int argc, char** argv)
         char fname[200];
         sprintf(fname, "pic/pic%04d.bmp", frame_number);
 
-        save_image_to_file(fname, SCREEN_WIDTH, SCREEN_HEIGHT);
+        save_image_to_file(fname);
 
         //Transforming vertices and normals back to object space
         mat_mult_device(x, y, z, obinv, x, y, z, num_v + 1);
