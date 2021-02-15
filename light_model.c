@@ -33,17 +33,36 @@ int Light_Model(double Ka[3],
 	if (len == 0) return 0;
 	if (M3d_norm(N, n) == 0) return 0;
 
-	double L[3]; //Vector from light to point
+	double L[3]; //Vector from point to light
 	L[0] = light_in_eye_space[0] - p[0];
 	L[1] = light_in_eye_space[1] - p[1];
 	L[2] = light_in_eye_space[2] - p[2];
 	if (M3d_norm(L, L) == 0) return 0;
 	double NdotL = M3d_dot_product(N, L);
 
+	/////AMBIENT/////
+	double ambient[3];
+	ambient[0] = AMBIENT * Ka[0];
+	ambient[1] = AMBIENT * Ka[1];
+	ambient[2] = AMBIENT * Ka[2];
+
 	double shadow_S[3]; //Start of ray used for checking shadows
-	shadow_S[0] = p[0] - L[0] * 0.001;
-	shadow_S[1] = p[1] - L[1] * 0.001;
-	shadow_S[2] = p[2] - L[2] * 0.001;
+	shadow_S[0] = p[0] + L[0] * 0.001;
+	shadow_S[1] = p[1] + L[1] * 0.001;
+	shadow_S[2] = p[2] + L[2] * 0.001;
+
+	//Arrays not actually used, needed for function call
+	double uv[2];
+	double point[3];
+
+	//Check if there is an object between light and our intersection point
+	if (intersect_all_triangles_device(shadow_S, light_in_eye_space, uv, point) != -1) {
+		//Light blocked by object, just want ambient
+		argb[0] = ambient[0];
+		argb[1] = ambient[1];
+		argb[2] = ambient[2];
+		return 1;
+	}
 
 	double V[3]; //Vector from camera to point
 	V[0] = s[0] - p[0];
@@ -51,11 +70,7 @@ int Light_Model(double Ka[3],
 	V[2] = s[2] - p[2];
 	if (M3d_norm(V, V) == 0) return 0;
 
-	/////AMBIENT/////
-	double ambient[3];
-	ambient[0] = AMBIENT * Ka[0];
-	ambient[1] = AMBIENT * Ka[1];
-	ambient[2] = AMBIENT * Ka[2];
+	
 
 	/////DIFFUSE/////
 
@@ -92,33 +107,8 @@ int Light_Model(double Ka[3],
 	argb[1] = ambient[1] + diffuse[1] + specular[1];
 	argb[2] = ambient[2] + diffuse[2] + specular[2];
 
-
-
 	return 1;
 }
-/*
-void interpolate_normal_vector(double N[3],
-	double Na[3],
-	double Nb[3],
-	double Nc[3],
-	double uv[2],
-	double obinv[4][4])
-	// N = resulting normal vector from interpolation (output)
-	// Na,Nb,Nc = Normal vectors at vertices A,B,C (input)
-{
-	double Ntemp[3];
-
-	//Interpolating between the 3 normal vectors
-	Ntemp[0] = (1 - uv[0] - uv[1]) * Na[0] + uv[0] * Nb[0] + uv[1] * Nc[0];
-	Ntemp[1] = (1 - uv[0] - uv[1]) * Na[1] + uv[0] * Nb[1] + uv[1] * Nc[1];
-	Ntemp[2] = (1 - uv[0] - uv[1]) * Na[2] + uv[0] * Nb[2] + uv[1] * Nc[2];
-
-	//Transforming normal to eye space
-	N[0] = Ntemp[0] * obinv[0][0] + Ntemp[1] * obinv[1][0] + Ntemp[2] * obinv[2][0];
-	N[1] = Ntemp[0] * obinv[0][1] + Ntemp[1] * obinv[1][1] + Ntemp[2] * obinv[2][1];
-	N[2] = Ntemp[0] * obinv[0][2] + Ntemp[1] * obinv[1][2] + Ntemp[2] * obinv[2][2];
-
-}*/
 
 //Interpolate normal vector based on uv-values
 //tri is the index of the triangle where intersection happened
