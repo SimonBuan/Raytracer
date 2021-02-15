@@ -1,47 +1,48 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libgen.h> //Needed for dirname
 
 #include "M3d_matrix_tools.h"
 #include "obj_reader.h"
+#include "kernel.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
 
-char *dir; //Directory path of the current obj file
+char drive[_MAX_DRIVE]; //Drive of current obj file
+char dir[_MAX_DIR]; //Directory of the current obj file
 
 int num_tris, num_mats, num_vn, num_v;
 int current_mat = -1;
 
-double *x, *y, *z, *xnormal, *ynormal, *znormal;
-double *u, *v;
-Triangle *tris;
-Material *mats;
+double* x, * y, * z, * xnormal, * ynormal, * znormal;
+double* u, * v;
+Triangle* tris;
+Material* mats;
 
-int get_face_format(FILE *f){
-  //Finds the format and info provided for the current face
+int get_face_format(FILE* f) {
+	//Finds the format and info provided for the current face
 
-	int a,b,c, ret;
+	int a, b, c, ret;
 	char d;
 	long pos = ftell(f);
-	ret = fscanf(f, "%d/%d/%d", &a,&b,&c);
-  //Both face of format v and v//vn returns 1
-  //Face of format v/vt returns 2
-  //Face of format v/vt/vn returns 3
-	if(ret == 1){
+	ret = fscanf(f, "%d/%d/%d", &a, &b, &c);
+	//Both face of format v and v//vn returns 1
+	//Face of format v/vt returns 2
+	//Face of format v/vt/vn returns 3
+	if (ret == 1) {
 		fscanf(f, "%c", &d);
-		if(d == '/'){
-      //Format v//vn
+		if (d == '/') {
+			//Format v//vn
 			ret = 4;
 		}
-    //Else format is v
+		//Else format is v
 	}
 	fseek(f, pos, SEEK_SET);
 	return ret;
 }
 
-void find_and_add_normal(int A, int B, int C){
+void find_and_add_normal(int A, int B, int C) {
 	//Calculates the normal for the face defined by vertices at index A, B and C
 	//Adds the normal to the triangle that is currently being read
 
@@ -49,8 +50,8 @@ void find_and_add_normal(int A, int B, int C){
 
 	//Find two vectors defining the current face
 	AB[0] = x[B] - x[A];
-   	AB[1] = y[B] - y[A];
-   	AB[2] = z[B] - z[A];
+	AB[1] = y[B] - y[A];
+	AB[2] = z[B] - z[A];
 
 	AC[0] = x[C] - x[A];
 	AC[1] = y[C] - y[A];
@@ -70,61 +71,61 @@ void find_and_add_normal(int A, int B, int C){
 
 void center_and_scale_object()
 {
-  // center the object at the origin
-  // scale the object to fit inside of a 15x15x15 bounding box
-  int index_A, index_B, index_C;
-  double xc,yc,zc ;
-  double x_min, y_min, z_min, x_max, y_max, z_max;
+	// center the object at the origin
+	// scale the object to fit inside of a 15x15x15 bounding box
+	int index_A, index_B, index_C;
+	double xc, yc, zc;
+	double x_min, y_min, z_min, x_max, y_max, z_max;
 
-  xc = yc = zc = 0 ;
-  x_min = x_max = x[1];
-  y_min = y_max = y[1];
-  z_min = z_max = z[1];
+	xc = yc = zc = 0;
+	x_min = x_max = x[1];
+	y_min = y_max = y[1];
+	z_min = z_max = z[1];
 
-  int i ;
+	int i;
 
-  for (i = 1 ; i <= num_v; i++) {
-    xc += x[i]; yc += y[i]; zc += z[i];
-    
-    if(x[i] < x_min) x_min = x[i];
-    if(y[i] < y_min) y_min = y[i];
-    if(z[i] < z_min) z_min = z[i];
+	for (i = 1; i <= num_v; i++) {
+		xc += x[i]; yc += y[i]; zc += z[i];
 
-    if(x[i] > x_max) x_max = x[i];
-    if(y[i] > y_max) y_max = y[i];
-    if(z[i] > z_max) z_max = z[i];
-  }
-  xc /= num_v; yc /= num_v; zc /= num_v;
+		if (x[i] < x_min) x_min = x[i];
+		if (y[i] < y_min) y_min = y[i];
+		if (z[i] < z_min) z_min = z[i];
 
-  double xd, yd, zd;
+		if (x[i] > x_max) x_max = x[i];
+		if (y[i] > y_max) y_max = y[i];
+		if (z[i] > z_max) z_max = z[i];
+	}
+	xc /= num_v; yc /= num_v; zc /= num_v;
 
-  //Find the biggest distance between two points in all three axis.
-  xd = x_max - x_min;
-  yd = y_max - y_min;
-  zd = z_max - z_min;
+	double xd, yd, zd;
 
-  double sf, delta;
+	//Find the biggest distance between two points in all three axis.
+	xd = x_max - x_min;
+	yd = y_max - y_min;
+	zd = z_max - z_min;
 
-  if((xd > yd) && (xd > zd)) delta = xd;
-  else if(yd > zd) delta = yd;
-  else delta = zd;
+	double sf, delta;
 
-  //Set scaling factor based on largest distance to fit all vertices in a 15x15x15 cube.
-  sf = 15/delta;
+	if ((xd > yd) && (xd > zd)) delta = xd;
+	else if (yd > zd) delta = yd;
+	else delta = zd;
 
-  double t[4][4], s[4][4], m[4][4];
+	//Set scaling factor based on largest distance to fit all vertices in a 15x15x15 cube.
+	sf = 15 / delta;
 
-  M3d_make_translation(t, -xc, -yc, -zc);
-  M3d_make_scaling(s, sf, sf, sf);
-  M3d_mat_mult(m, s, t);
+	double t[4][4], s[4][4], m[4][4];
 
-  M3d_mat_mult_points(x, y, z, m, x, y, z, num_v + 1);
+	M3d_make_translation(t, -xc, -yc, -zc);
+	M3d_make_scaling(s, sf, sf, sf);
+	M3d_mat_mult(m, s, t);
+
+	mat_mult_device(x, y, z, m, x, y, z, num_v + 1);
 }
 
 void init_mat()
 {
 	mats[num_mats].index = num_mats;
-	
+
 	//Default colors of materials
 	mats[num_mats].Ka[0] = 1.0; mats[num_mats].Ka[1] = 1.0; mats[num_mats].Ka[2] = 1.0;
 	mats[num_mats].Kd[0] = 1.0; mats[num_mats].Kd[1] = 1.0; mats[num_mats].Kd[2] = 1.0;
@@ -136,21 +137,21 @@ void init_mat()
 }
 
 //Returns the number of new materials in .mtl file at fname
-int allocate_mtl_mem(char *fname){
-	FILE *f;
+int allocate_mtl_mem(char* fname) {
+	FILE* f;
 	char keyword[100];
 
 	int num = 0;
-	
+
 	f = fopen(fname, "rb");
-	if(f == NULL){
+	if (f == NULL) {
 		SDL_Log("can't open file, %s\n", fname);
 	}
-	while(fscanf(f, "%s", keyword) == 1){
-		if(strcmp(keyword, "newmtl") == 0){
+	while (fscanf(f, "%s", keyword) == 1) {
+		if (strcmp(keyword, "newmtl") == 0) {
 			num++;
 		}
-		else{
+		else {
 			//Don't need to allocate memory for anything else, 
 			//skip line
 			fgets(keyword, 100, f);
@@ -159,105 +160,106 @@ int allocate_mtl_mem(char *fname){
 	return num;
 }
 
-int read_mtl_file(char *fname){
-  //Parses .mtl material file
-	FILE *f;
-	SDL_Surface *image;
+int read_mtl_file(char* fname) {
+	//Parses .mtl material file
+	FILE* f;
+	SDL_Surface* image;
 	char keyword[100];
 	char name[100];
 	char path[100];
 	double dump;
 	f = fopen(fname, "rb");
-	if(f == NULL){
+	if (f == NULL) {
 		SDL_Log("can't open file, %s\n", fname);
+		exit(1);
 	}
-	while(fscanf(f, "%s", keyword) == 1){
-		if(strcmp(keyword, "newmtl") == 0){
+	while (fscanf(f, "%s", keyword) == 1) {
+		if (strcmp(keyword, "newmtl") == 0) {
 			fscanf(f, "%s", mats[num_mats].name);
 			init_mat();
 
 			num_mats++;
 		}
-		else if(strcmp(keyword, "Ka") == 0){//ambient rgb
-			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ka[0], &mats[num_mats-1].Ka[1], &mats[num_mats-1].Ka[2]);
+		else if (strcmp(keyword, "Ka") == 0) {//ambient rgb
+			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Ka[0], &mats[num_mats - 1].Ka[1], &mats[num_mats - 1].Ka[2]);
 		}
-		else if(strcmp(keyword, "Kd") == 0){//diffuse rgb
-			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Kd[0], &mats[num_mats-1].Kd[1], &mats[num_mats-1].Kd[2]);
+		else if (strcmp(keyword, "Kd") == 0) {//diffuse rgb
+			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Kd[0], &mats[num_mats - 1].Kd[1], &mats[num_mats - 1].Kd[2]);
 		}
-		else if(strcmp(keyword, "Ks") == 0){//specular rgb
-			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ks[0], &mats[num_mats-1].Ks[1], &mats[num_mats-1].Ks[2]);
+		else if (strcmp(keyword, "Ks") == 0) {//specular rgb
+			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Ks[0], &mats[num_mats - 1].Ks[1], &mats[num_mats - 1].Ks[2]);
 		}
-		else if(strcmp(keyword, "Ke") == 0){//specular rgb
-			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Ke[0], &mats[num_mats-1].Ke[1], &mats[num_mats-1].Ke[2]);
+		else if (strcmp(keyword, "Ke") == 0) {//specular rgb
+			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Ke[0], &mats[num_mats - 1].Ke[1], &mats[num_mats - 1].Ke[2]);
 		}
-		else if(strcmp(keyword, "map_Ka") == 0){//ambient texture map
+		else if (strcmp(keyword, "map_Ka") == 0) {//ambient texture map
 			fscanf(f, "%s", name);
 			strcpy(path, dir);
 			strcat(path, name);
 			image = IMG_Load(path);
-			if(!image)
+			if (!image)
 			{
 				SDL_Log("IMG_Load: %s\n", IMG_GetError());
 			}
 			else
 			{
-				mats[num_mats-1].map_Ka = image;
+				mats[num_mats - 1].map_Ka = image;
 			}
 		}
-		else if(strcmp(keyword, "map_Kd") == 0){//diffuse texture map
+		else if (strcmp(keyword, "map_Kd") == 0) {//diffuse texture map
 			fscanf(f, "%s", name);
 			strcpy(path, dir);
 			strcat(path, name);
 			image = IMG_Load(path);
-			if(!image)
+			if (!image)
 			{
 				SDL_Log("IMG_Load: %s\n", IMG_GetError());
 			}
 			else
 			{
-				mats[num_mats-1].map_Kd = image;
+				mats[num_mats - 1].map_Kd = image;
 			}
 		}
-		else if(strcmp(keyword, "map_Ks") == 0){//specular texture map
-			if(num_tris == 17744)
-			fscanf(f, "%s", name);
+		else if (strcmp(keyword, "map_Ks") == 0) {//specular texture map
+			if (num_tris == 17744)
+				fscanf(f, "%s", name);
 			strcpy(path, dir);
 			strcat(path, name);
 			image = IMG_Load(path);
-			if(!image)
+			if (!image)
 			{
 				SDL_Log("IMG_Load: %s\n", IMG_GetError());
 			}
 			else
 			{
-				mats[num_mats-1].map_Ks = image;
+				mats[num_mats - 1].map_Ks = image;
 			}
 		}
-		else if(strcmp(keyword, "map_bump") == 0){
+		else if (strcmp(keyword, "map_bump") == 0) {
 			fgets(name, 100, f);
 		}
-		else if(strcmp(keyword, "Tr") == 0){
+		else if (strcmp(keyword, "Tr") == 0) {
 			fscanf(f, "%lf", &dump);
 		}
-		else if(strcmp(keyword, "Tf") == 0){
-			fscanf(f, "%lf %lf %lf", &mats[num_mats-1].Tf[0], &mats[num_mats-1].Tf[1], &mats[num_mats-1].Tf[2]);
+		else if (strcmp(keyword, "Tf") == 0) {
+			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Tf[0], &mats[num_mats - 1].Tf[1], &mats[num_mats - 1].Tf[2]);
 		}
-		else if(strcmp(keyword, "illum") == 0){
-			fscanf(f, "%d", &mats[num_mats-1].illum);
+		else if (strcmp(keyword, "illum") == 0) {
+			fscanf(f, "%d", &mats[num_mats - 1].illum);
 		}
-		else if(strcmp(keyword, "Ns") == 0){
-			fscanf(f, "%lf", &mats[num_mats-1].Ns);
+		else if (strcmp(keyword, "Ns") == 0) {
+			fscanf(f, "%lf", &mats[num_mats - 1].Ns);
 		}
-		else if(strcmp(keyword, "Ni") == 0){
-			fscanf(f, "%lf" , &mats[num_mats-1].Ni);
+		else if (strcmp(keyword, "Ni") == 0) {
+			fscanf(f, "%lf", &mats[num_mats - 1].Ni);
 		}
-		else if(strcmp(keyword, "d") == 0){
-			fscanf(f,  "%lf", &mats[num_mats-1].d);
+		else if (strcmp(keyword, "d") == 0) {
+			fscanf(f, "%lf", &mats[num_mats - 1].d);
 		}
-		else if(strcmp(keyword, "#") == 0){//comment
+		else if (strcmp(keyword, "#") == 0) {//comment
 			fgets(name, 100, f);
 		}
-		else{
+		else {
 			fgets(name, 100, f);
 		}
 	}
@@ -266,35 +268,35 @@ int read_mtl_file(char *fname){
 
 //Scans through the .obj file and allocates the necessary memory
 //Exits if it reads faces with more than 4 vertices
-void allocate_mem(const char *fname){
+void allocate_mem(const char* fname) {
 	num_tris = num_mats = num_vn = 0;
 	int num_vt = 0;
 	int format;
 	int a[3];
 
-	FILE *f;
-	char keyword[100], path[100];
+	FILE* f;
+	char keyword[100], path[_MAX_PATH];
 
 	f = fopen(fname, "rb");
-	if(f == NULL)
+	if (f == NULL)
 	{
 		SDL_Log("can't open file, %s\n", fname);
 		exit(1);
 	}
 
-	while(fscanf(f, "%s", keyword) == 1){
-		if(strcmp(keyword, "v") == 0){
+	while (fscanf(f, "%s", keyword) == 1) {
+		if (strcmp(keyword, "v") == 0) {
 			num_v++;
 		}
-		else if(strcmp(keyword, "vt") == 0){
+		else if (strcmp(keyword, "vt") == 0) {
 			num_vt++;
 		}
-		else if(strcmp(keyword, "vn") == 0){
+		else if (strcmp(keyword, "vn") == 0) {
 			num_vn++;
 		}
-		else if(strcmp(keyword, "f") == 0){
+		else if (strcmp(keyword, "f") == 0) {
 			format = get_face_format(f);
-			if(format == 1){//Face format: v v v
+			if (format == 1) {//Face format: v v v
 				//A face must have at least three vertices, so skip past these and increment triangle count
 				fscanf(f, "%d %d %d", &a[0], &a[1], &a[2]);
 				num_tris++;
@@ -302,13 +304,13 @@ void allocate_mem(const char *fname){
 				//Will need to calculate and add 1 normal for the face
 				num_vn++;
 
-				if(fscanf(f, "%d", &a[0]) == 1){
+				if (fscanf(f, "%d", &a[0]) == 1) {
 					//Face has a fourth vertex, means a quadrilateral
 					//Will be triangulated into two triangles
 					num_tris++;
 
 
-					if(fscanf(f, "%d", &a[0]) == 1){
+					if (fscanf(f, "%d", &a[0]) == 1) {
 						//Face has a fifth vertex
 						//Program can't currently handle faces with more than 4 vertices
 						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
@@ -316,7 +318,7 @@ void allocate_mem(const char *fname){
 					}
 				}
 			}
-			else if(format == 2){//Face format: v/vt v/vt v/vt
+			else if (format == 2) {//Face format: v/vt v/vt v/vt
 				//Skip past the first three vertices
 				fscanf(f, "%d/%d", &a[0], &a[1]);
 				fscanf(f, "%d/%d", &a[0], &a[1]);
@@ -326,44 +328,44 @@ void allocate_mem(const char *fname){
 				//Will need to calculate and add 1 normal for the face
 				num_vn++;
 
-				if(fscanf(f, "%d/%d", &a[0], &a[1]) == 2){
+				if (fscanf(f, "%d/%d", &a[0], &a[1]) == 2) {
 					//Face has a fourth vertex, means a quadrilateral
 					num_tris++;
-					if(fscanf(f, "%d/%d", &a[0], &a[1]) == 2){
+					if (fscanf(f, "%d/%d", &a[0], &a[1]) == 2) {
 						//Fifth vertex
 						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
 						exit(1);
 					}
 				}
 			}
-			else if(format == 3){//Face format: v/vt/vn  v/vt/vn v/vt/vn
+			else if (format == 3) {//Face format: v/vt/vn  v/vt/vn v/vt/vn
 				//Skip past the first three vertices
-				fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]);
-				fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]);
-				fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]);
+				fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]);
+				fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]);
+				fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]);
 				num_tris++;
 
-				if(fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]) == 3){
+				if (fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]) == 3) {
 					//Face has a fourth vertex, means a quadrilateral
 					num_tris++;
-					if(fscanf(f, "%d/%d/%d", &a[0], &a[1],&a[2]) == 3){
+					if (fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]) == 3) {
 						//Fifth vertex
 						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
 						exit(1);
 					}
 				}
 			}
-			else if(format == 4){//Face format: v//vn v//vn v//vn
+			else if (format == 4) {//Face format: v//vn v//vn v//vn
 				//Skip past the first three vertices
 				fscanf(f, "%d//%d", &a[0], &a[1]);
 				fscanf(f, "%d//%d", &a[0], &a[1]);
 				fscanf(f, "%d//%d", &a[0], &a[1]);
 				num_tris++;
 
-				if(fscanf(f, "%d//%d", &a[0], &a[1]) == 2){
+				if (fscanf(f, "%d//%d", &a[0], &a[1]) == 2) {
 					//Face has a fourth vertex, means a quadrilateral
 					num_tris++;
-					if(fscanf(f, "%d//%d", &a[0], &a[1]) == 2){
+					if (fscanf(f, "%d//%d", &a[0], &a[1]) == 2) {
 						//Fifth vertex
 						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
 						exit(1);
@@ -371,15 +373,18 @@ void allocate_mem(const char *fname){
 				}
 			}
 		}
-		else if(strcmp(keyword, "mtllib") == 0){
+		else if (strcmp(keyword, "mtllib") == 0) {
 			fscanf(f, "%s", keyword);
-    		strcpy(path, dir);
-			
-    		strcat(path, keyword);
-			
-    		num_mats += allocate_mtl_mem(path);
+
+			errno_t err = _makepath_s(path, _MAX_PATH, drive, dir, keyword, NULL);
+			if (err != 0) {
+				printf("Error creating path. Error code %d.\n", err);
+				exit(1);
+			}
+
+			num_mats += allocate_mtl_mem(path);
 		}
-		else{
+		else {
 			//Read something that is not currently being allocated memory
 			fgets(keyword, 100, f); //skip the line
 		}
@@ -388,332 +393,333 @@ void allocate_mem(const char *fname){
 	num_v++; num_vn++; num_vt++;
 
 	//Vertices in object space
-	x = (double *) malloc(num_v * sizeof(double));
-	y = (double *) malloc(num_v * sizeof(double));
-	z = (double *) malloc(num_v * sizeof(double));
+	x = (double*)malloc(num_v * sizeof(double));
+	y = (double*)malloc(num_v * sizeof(double));
+	z = (double*)malloc(num_v * sizeof(double));
 
-	if((x == NULL) || (y == NULL) || (z == NULL)){
+	if ((x == NULL) || (y == NULL) || (z == NULL)) {
 		SDL_Log("Unable to allocate memory for vertices\n");
 		exit(1);
 	}
-	
-	//uv texture coordinates
-	u = (double *) malloc(num_vt * sizeof(double));
-	v = (double *) malloc(num_vt * sizeof(double));
 
-	if((u == NULL) || (v == NULL)){
+	//uv texture coordinates
+	u = (double*)malloc(num_vt * sizeof(double));
+	v = (double*)malloc(num_vt * sizeof(double));
+
+	if ((u == NULL) || (v == NULL)) {
 		SDL_Log("Unable to allocate memory for texure coordinates\n");
 		exit(1);
 	}
 
 	//Normal vectors in object space
-	xnormal = (double *) malloc(num_vn * sizeof(double));
-	ynormal = (double *) malloc(num_vn * sizeof(double));
-	znormal = (double *) malloc(num_vn * sizeof(double));
+	xnormal = (double*)malloc(num_vn * sizeof(double));
+	ynormal = (double*)malloc(num_vn * sizeof(double));
+	znormal = (double*)malloc(num_vn * sizeof(double));
 
-	if((xnormal == NULL) || (ynormal == NULL) || (znormal == NULL)){
+	if ((xnormal == NULL) || (ynormal == NULL) || (znormal == NULL)) {
 		SDL_Log("Unable to allocate memory for normal vectors\n");
 		exit(1);
 	}
-	
-	tris = (Triangle *) malloc(num_tris * sizeof(Triangle));
-	
-	if(tris == NULL){
+
+	tris = (Triangle*)malloc(num_tris * sizeof(Triangle));
+
+	if (tris == NULL) {
 		SDL_Log("Unable to allocate memory for triangles\n");
 		exit(1);
 	}
 
-	mats = (Material *) malloc(num_mats * sizeof(Material));
+	mats = (Material*)malloc(num_mats * sizeof(Material));
 
-	if(mats == NULL){
+	if (mats == NULL) {
 		SDL_Log("Unable to allocate memory for materials\n");
 		exit(1);
 	}
 
 }
 
-int read_obj_file(const char *fname)
+//Parses .obj object file
+int read_obj_file(const char* fname)
 {
-  //Parses .obj object file
+	//Find drive and directory of .obj file
+	//Used to find related materials and resources
+	errno_t err = _splitpath_s(fname, drive, _MAX_DRIVE, dir, _MAX_DIR, NULL, 0, NULL, 0);
+	if (err != 0) {
+		SDL_Log("Error splitting the path. Error code %d.\n", err);
+		exit(1);
+	}
 
-	//Make duplicate of fname to be used to find directory name
-	char *dup = strdup(fname);
-	
 
-	//Find directory of obj file needed to find related .mtl files and maps
-	dir = dirname(dup);
-	char ch[2]; 
-	ch[0] = '/'; ch[1] = '\0';
-	strcat(dir, ch);
-	
 	allocate_mem(fname);
 
 	num_tris = 0; num_mats = 0; num_vn = 0; num_v = 0;
-	int num_vt = 0; 
+	int num_vt = 0;
 	int index_vA, index_vB, index_vC, index_vD, index_vt, index_vn, i;
 	int format;
 	double n[3], AB[3], AC[3];
-	FILE *f;
+	FILE* f;
 	char keyword[100];
 	char name[100];
-	char path[100];
+	char path[_MAX_PATH];
 
-	
+
 
 	SDL_Log("Loading obj file %s\n", fname);
 
 
 	//Need to read as binary for ftell and fseek to work properly on Windows
 	f = fopen(fname, "rb");
-	if(f == NULL)
+	if (f == NULL)
 	{
 		SDL_Log("can't open file, %s\n", fname);
 		exit(1);
 	}
 	num_tris = 0;
-	while(fscanf(f, "%s", keyword) == 1)
+	while (fscanf(f, "%s", keyword) == 1)
 	{
-	if(strcmp(keyword, "v") == 0)
-    {//geometric vertex
-    	num_v++;
-    	fscanf(f, "%lf %lf %lf %lf", &x[num_v], &y[num_v], &z[num_v]);
-    }
-    else if(strcmp(keyword, "vt") == 0)
-    {//texture vertex
-    	num_vt++;
-    	fscanf(f, "%lf %lf", &u[num_vt], &v[num_vt]);
-    }
-    else if(strcmp(keyword, "vn") == 0)
-    {//vertex normal
-    	num_vn++;
-    	fscanf(f, "%lf %lf %lf", &xnormal[num_vn], &ynormal[num_vn], &znormal[num_vn]);
-    }
-    else if(strcmp(keyword, "vp") == 0)
-    {//parameter space vertex
-    }
-    else if(strcmp(keyword, "g") == 0)
-    {//group
-    	fscanf(f, "%s", name);
-    }
-    else if(strcmp(keyword, "s") == 0)
-    {//smooth shading
-    	fscanf(f, "%s", name);
-    }
-    else if(strcmp(keyword, "f") == 0)
-    {//face
-    	tris[num_tris].mtl.index = current_mat;
-    	if(tris[num_tris].mtl.index != -1)
-    	{
-    		tris[num_tris].mtl = mats[current_mat];
-    	}
-	
-
-      //Checking what information is included for the face
-    	format = get_face_format(f);
-
-    	if(format == 1)
-    	{//Face format: v v v
-			//Indeces of vertices of the triangle
-    		fscanf(f, "%d", &index_vA);
-    		fscanf(f, "%d", &index_vB);
-    		fscanf(f, "%d", &index_vC);
-
-			tris[num_tris].A = index_vA;
-			tris[num_tris].B = index_vB;
-			tris[num_tris].C = index_vC;
-
-			//Normal vectors not provided
-			//Calculated here, same normal added to all three vertices
-    		find_and_add_normal(index_vA, index_vB, index_vC);
-
-			//Check if face is a quadrilateral
-    		if(fscanf(f, "%d", &index_vD) == 1){
-	  			//Triangulate the quadrilateral
-    			num_tris++;
-
-	  			//Indeces of vertices of second triangle
-    			tris[num_tris].A = index_vA;
-    			tris[num_tris].B = index_vC;
-    			tris[num_tris].C = index_vD;
-
-	  			//Normal vector for the vertices not provided by file
-	  			//Normal vector for surface is the same as 1st triangle
-    			tris[num_tris].An = tris[num_tris].Bn = tris[num_tris].Cn = num_vn;
-
-    		}
-    	}
-      else if(format == 2){//Face format: v/vt v/vt v/vt
-		//First vertex of triangle
-      	fscanf(f, "%d/%d", &index_vA, &index_vt);
-
-      	tris[num_tris].A = index_vA;
-      	tris[num_tris].At = index_vt;
-
-		//Second vertex of triangle
-      	fscanf(f, "%d/%d", &index_vB, &index_vt);
-
-      	tris[num_tris].B = index_vB;
-      	tris[num_tris].Bt= index_vt;
-
-		//Third vertex of triangle
-      	fscanf(f, "%d/%d", &index_vC, &index_vt);
-
-      	tris[num_tris].C = index_vC;
-      	tris[num_tris].Ct = index_vt;
-
-		//Normal vectors not provided
-		//Calculated here, same normal added to all three vertices
-      	find_and_add_normal(index_vA, index_vB, index_vC);
-
-		//Check if face is a quadrilateral
-      	if(fscanf(f, "%d/%d", &index_vD, &index_vt) == 2){
-	  		//Triangulate the quadrilateral
-      		num_tris++;
-
-	  		//First vertex of second triangle
-      		tris[num_tris].A = index_vA;
-
-	  		//Shares texture vertices with first vertex of 1st triangle
-      		tris[num_tris].At = tris[num_tris-1].At;
-
-	  		//Second vertex of second triangle
-      		tris[num_tris].B = index_vC;
-
-	  		//Shares texture vertices with third vertex of 1st triangle
-      		tris[num_tris].Bt = tris[num_tris-1].Ct;
-
-	  		//Third vertex of second triangle
-      		tris[num_tris].C = index_vD;
-      		tris[num_tris].Ct = index_vt;
-
-	  		//Normals vector for the vertices not provided by file
-	  		//Normal vector for surface is the same as 1st triangle
-      		tris[num_tris].An = tris[num_tris].Bn = tris[num_tris].Cn = num_vn;
-      	}
-      }
-      else if(format == 3){//Face format: v/vt/vn  v/vt/vn v/vt/vn
-		//First vertex of triangle
-      	fscanf(f, "%d/%d/%d", &index_vA, &index_vt, &index_vn);
-
-      	tris[num_tris].A = index_vA;
-      	tris[num_tris].At = index_vt;
-      	tris[num_tris].An = index_vn;
-
-		//Second vertex of triangle
-      	fscanf(f, "%d/%d/%d", &index_vB, &index_vt, &index_vn);
-
-      	tris[num_tris].B = index_vB;
-      	tris[num_tris].Bt = index_vt;
-      	tris[num_tris].Bn = index_vn;
-
-		//Third vertex of triangle
-      	fscanf(f, "%d/%d/%d", &index_vC, &index_vt, &index_vn);
-
-      	tris[num_tris].C = index_vC;
-      	tris[num_tris].Ct = index_vt;
-      	tris[num_tris].Cn = index_vn;
-
-		//Check if face is a quadrilateral
-      	if(fscanf(f, "%d/%d/%d", &index_vD, &index_vt, &index_vn) == 3){
-	  		//Triangulate the quadrilateral
-      		num_tris++;
-
-	  		//First vertex of second triangle
-      		tris[num_tris].A = index_vA;
-
-	  		//Shares texture vertices and normal vector with first vertex of 1st triangle
-      		tris[num_tris].At = tris[num_tris-1].At;
-      		tris[num_tris].An = tris[num_tris-1].An;
-
-	  		//Second vertex of second triangle
-      		tris[num_tris].B = index_vC;
-
-	  		//Shares texture vertices and normal vector with third vertex of 1st triangle
-      		tris[num_tris].Bt = tris[num_tris-1].Ct;
-      		tris[num_tris].Bn = tris[num_tris-1].Cn;
-
-	  		//Third vertex of second triangle
-      		tris[num_tris].C = index_vD;
-      		tris[num_tris].Ct = index_vt;
-      		tris[num_tris].Cn = index_vn;
-      	}
-      }
-      else if(format == 4){//Face format: v//vn v//vn v//vn
-		//First vertex of triangle
-      	fscanf(f, "%d//%d", &index_vA, &index_vn);
-
-      	tris[num_tris].A = index_vA;
-      	tris[num_tris].An = index_vn;
-
-		//Second vertex of triangle
-      	fscanf(f, "%d//%d", &index_vB, &index_vn);
-
-      	tris[num_tris].B = index_vB;
-      	tris[num_tris].Bn = index_vn;
-
-		//Third vertex of triangle
-      	fscanf(f, "%d//%d", &index_vC, &index_vn);
-
-      	tris[num_tris].C = index_vC;
-      	tris[num_tris].Cn = index_vn;
-
-		//Check if face is a quadrilateral
-      	if(fscanf(f, "%d//%d", &index_vD, &index_vn) == 2){
-	  		//Triangulate the quadrilateral
-      		num_tris++;
-
-	  		//First vertex of second triangle
-      		tris[num_tris].A = index_vA;
-      		tris[num_tris].An = tris[num_tris-1].An;
-
-	  		//Second vertex of second triangle
-      		tris[num_tris].B = index_vC;
-      		tris[num_tris].Bn = tris[num_tris-1].Cn;
+		if (strcmp(keyword, "v") == 0)
+		{//geometric vertex
+			num_v++;
+			fscanf(f, "%lf %lf %lf %lf", &x[num_v], &y[num_v], &z[num_v]);
+		}
+		else if (strcmp(keyword, "vt") == 0)
+		{//texture vertex
+			num_vt++;
+			fscanf(f, "%lf %lf", &u[num_vt], &v[num_vt]);
+		}
+		else if (strcmp(keyword, "vn") == 0)
+		{//vertex normal
+			num_vn++;
+			fscanf(f, "%lf %lf %lf", &xnormal[num_vn], &ynormal[num_vn], &znormal[num_vn]);
+		}
+		else if (strcmp(keyword, "vp") == 0)
+		{//parameter space vertex
+		}
+		else if (strcmp(keyword, "g") == 0)
+		{//group
+			fscanf(f, "%s", name);
+		}
+		else if (strcmp(keyword, "s") == 0)
+		{//smooth shading
+			fscanf(f, "%s", name);
+		}
+		else if (strcmp(keyword, "f") == 0)
+		{//face
+			tris[num_tris].mtl.index = current_mat;
+			if (tris[num_tris].mtl.index != -1)
+			{
+				tris[num_tris].mtl = mats[current_mat];
+			}
 
 
-	  		//Third vertex of second triangle
-      		tris[num_tris].C = index_vD;
-      		tris[num_tris].Cn = index_vn;
+			//Checking what information is included for the face
+			format = get_face_format(f);
 
-      	}
-      }
-      tris[num_tris].mtl.index = current_mat;
-      if(tris[num_tris].mtl.index != -1){
-      	tris[num_tris].mtl = mats[current_mat];
-      }
-      
-      num_tris++;
-  }
-    else if(strcmp(keyword, "mtllib") == 0){//Material file
-    	fscanf(f, "%s", name);
-    	strcpy(path, dir);
+			if (format == 1)
+			{//Face format: v v v
+				//Indeces of vertices of the triangle
+				fscanf(f, "%d", &index_vA);
+				fscanf(f, "%d", &index_vB);
+				fscanf(f, "%d", &index_vC);
 
-    	strcat(path, name);
-    	read_mtl_file(path);
-    }
-    else if(strcmp(keyword, "usemtl") == 0){//Use material
-    	fscanf(f, "%s", name);
-    	for(i = 0; i < num_mats; i++){
-    		if(strcmp(name, mats[i].name) == 0){
-    			current_mat = i;
-    			break;
-    		}
-    	}
-    }
-    else if(strcmp(keyword, "#") == 0){//comment
-      fgets(name, 100, f); //skip the line
-  }
-}
+				tris[num_tris].A = index_vA;
+				tris[num_tris].B = index_vB;
+				tris[num_tris].C = index_vC;
 
-center_and_scale_object();
-SDL_Log("Triangles: %d\n", num_tris);
-SDL_Log("Finished loading %s\n", fname);
-return 1;
+				//Normal vectors not provided
+				//Calculated here, same normal added to all three vertices
+				find_and_add_normal(index_vA, index_vB, index_vC);
+
+				//Check if face is a quadrilateral
+				if (fscanf(f, "%d", &index_vD) == 1) {
+					//Triangulate the quadrilateral
+					num_tris++;
+
+					//Indeces of vertices of second triangle
+					tris[num_tris].A = index_vA;
+					tris[num_tris].B = index_vC;
+					tris[num_tris].C = index_vD;
+
+					//Normal vector for the vertices not provided by file
+					//Normal vector for surface is the same as 1st triangle
+					tris[num_tris].An = tris[num_tris].Bn = tris[num_tris].Cn = num_vn;
+
+				}
+			}
+			else if (format == 2) {//Face format: v/vt v/vt v/vt
+			  //First vertex of triangle
+				fscanf(f, "%d/%d", &index_vA, &index_vt);
+
+				tris[num_tris].A = index_vA;
+				tris[num_tris].At = index_vt;
+
+				//Second vertex of triangle
+				fscanf(f, "%d/%d", &index_vB, &index_vt);
+
+				tris[num_tris].B = index_vB;
+				tris[num_tris].Bt = index_vt;
+
+				//Third vertex of triangle
+				fscanf(f, "%d/%d", &index_vC, &index_vt);
+
+				tris[num_tris].C = index_vC;
+				tris[num_tris].Ct = index_vt;
+
+				//Normal vectors not provided
+				//Calculated here, same normal added to all three vertices
+				find_and_add_normal(index_vA, index_vB, index_vC);
+
+				//Check if face is a quadrilateral
+				if (fscanf(f, "%d/%d", &index_vD, &index_vt) == 2) {
+					//Triangulate the quadrilateral
+					num_tris++;
+
+					//First vertex of second triangle
+					tris[num_tris].A = index_vA;
+
+					//Shares texture vertices with first vertex of 1st triangle
+					tris[num_tris].At = tris[num_tris - 1].At;
+
+					//Second vertex of second triangle
+					tris[num_tris].B = index_vC;
+
+					//Shares texture vertices with third vertex of 1st triangle
+					tris[num_tris].Bt = tris[num_tris - 1].Ct;
+
+					//Third vertex of second triangle
+					tris[num_tris].C = index_vD;
+					tris[num_tris].Ct = index_vt;
+
+					//Normals vector for the vertices not provided by file
+					//Normal vector for surface is the same as 1st triangle
+					tris[num_tris].An = tris[num_tris].Bn = tris[num_tris].Cn = num_vn;
+				}
+			}
+			else if (format == 3) {//Face format: v/vt/vn  v/vt/vn v/vt/vn
+			  //First vertex of triangle
+				fscanf(f, "%d/%d/%d", &index_vA, &index_vt, &index_vn);
+
+				tris[num_tris].A = index_vA;
+				tris[num_tris].At = index_vt;
+				tris[num_tris].An = index_vn;
+
+				//Second vertex of triangle
+				fscanf(f, "%d/%d/%d", &index_vB, &index_vt, &index_vn);
+
+				tris[num_tris].B = index_vB;
+				tris[num_tris].Bt = index_vt;
+				tris[num_tris].Bn = index_vn;
+
+				//Third vertex of triangle
+				fscanf(f, "%d/%d/%d", &index_vC, &index_vt, &index_vn);
+
+				tris[num_tris].C = index_vC;
+				tris[num_tris].Ct = index_vt;
+				tris[num_tris].Cn = index_vn;
+
+				//Check if face is a quadrilateral
+				if (fscanf(f, "%d/%d/%d", &index_vD, &index_vt, &index_vn) == 3) {
+					//Triangulate the quadrilateral
+					num_tris++;
+
+					//First vertex of second triangle
+					tris[num_tris].A = index_vA;
+
+					//Shares texture vertices and normal vector with first vertex of 1st triangle
+					tris[num_tris].At = tris[num_tris - 1].At;
+					tris[num_tris].An = tris[num_tris - 1].An;
+
+					//Second vertex of second triangle
+					tris[num_tris].B = index_vC;
+
+					//Shares texture vertices and normal vector with third vertex of 1st triangle
+					tris[num_tris].Bt = tris[num_tris - 1].Ct;
+					tris[num_tris].Bn = tris[num_tris - 1].Cn;
+
+					//Third vertex of second triangle
+					tris[num_tris].C = index_vD;
+					tris[num_tris].Ct = index_vt;
+					tris[num_tris].Cn = index_vn;
+				}
+			}
+			else if (format == 4) {//Face format: v//vn v//vn v//vn
+			  //First vertex of triangle
+				fscanf(f, "%d//%d", &index_vA, &index_vn);
+
+				tris[num_tris].A = index_vA;
+				tris[num_tris].An = index_vn;
+
+				//Second vertex of triangle
+				fscanf(f, "%d//%d", &index_vB, &index_vn);
+
+				tris[num_tris].B = index_vB;
+				tris[num_tris].Bn = index_vn;
+
+				//Third vertex of triangle
+				fscanf(f, "%d//%d", &index_vC, &index_vn);
+
+				tris[num_tris].C = index_vC;
+				tris[num_tris].Cn = index_vn;
+
+				//Check if face is a quadrilateral
+				if (fscanf(f, "%d//%d", &index_vD, &index_vn) == 2) {
+					//Triangulate the quadrilateral
+					num_tris++;
+
+					//First vertex of second triangle
+					tris[num_tris].A = index_vA;
+					tris[num_tris].An = tris[num_tris - 1].An;
+
+					//Second vertex of second triangle
+					tris[num_tris].B = index_vC;
+					tris[num_tris].Bn = tris[num_tris - 1].Cn;
+
+
+					//Third vertex of second triangle
+					tris[num_tris].C = index_vD;
+					tris[num_tris].Cn = index_vn;
+
+				}
+			}
+			tris[num_tris].mtl.index = current_mat;
+			if (tris[num_tris].mtl.index != -1) {
+				tris[num_tris].mtl = mats[current_mat];
+			}
+
+			num_tris++;
+		}
+		else if (strcmp(keyword, "mtllib") == 0) {//Material file
+			fscanf(f, "%s", name);
+			err = _makepath_s(path, _MAX_PATH, drive, dir, name, NULL);
+			if (err != 0) {
+				printf("Error creating path. Error code %d.\n", err);
+				exit(1);
+			}
+
+			read_mtl_file(path);
+		}
+		else if (strcmp(keyword, "usemtl") == 0) {//Use material
+			fscanf(f, "%s", name);
+			for (i = 0; i < num_mats; i++) {
+				if (strcmp(name, mats[i].name) == 0) {
+					current_mat = i;
+					break;
+				}
+			}
+		}
+		else if (strcmp(keyword, "#") == 0) {//comment
+			fgets(name, 100, f); //skip the line
+		}
+	}
+
+	center_and_scale_object();
+	SDL_Log("Triangles: %d\n", num_tris);
+	SDL_Log("Finished loading %s\n", fname);
+	return 1;
 }
 
 
 //Frees all memory used by the current object
-void close_object(){
+void close_object() {
 	free(x);
 	free(y);
 	free(z);

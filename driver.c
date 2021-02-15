@@ -8,169 +8,172 @@
 #include "M3d_matrix_tools.h"
 #include "obj_reader.h"
 #include "light_model.h"
-#include "raytracer.c"
-#include "graphic_tools.c"
+#include "graphic_tools.h"
+#include "kernel.h"
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-  init_graphics(SCREEN_WIDTH,SCREEN_HEIGHT);
-  init_IMG();
+    init_graphics(SCREEN_WIDTH, SCREEN_HEIGHT);
+    init_IMG();
 
-  double degrees_of_half_angle ;
+    double degrees_of_half_angle;
 
-  degrees_of_half_angle = 30 ;
-  read_obj_file("./objects/cat/12221_Cat_v1_l3.obj");
+    degrees_of_half_angle = 30;
+    read_obj_file("./objects/plane/11803_Airplane_v1_l1.obj");
 
-  double tan_half = tan(degrees_of_half_angle*M_PI/180);
+    double tan_half = tan(degrees_of_half_angle * M_PI / 180);
 
-  int s,e,frame_number ;
-  s = 10 ; e = 15 ;
-  for(frame_number = s; frame_number < e; frame_number++){
-    SDL_Log("frame: %d\n", frame_number);
-    set_rgb(0,0,0);
-    SDL_RenderClear(S_Renderer);
+    int s, e, frame_number;
+    s = 10; e = 15;
+    for (frame_number = s; frame_number < e; frame_number++) {
+        SDL_Log("frame: %d\n", frame_number);
+        set_rgb(0, 0, 0);
+        SDL_RenderClear(S_Renderer);
 
-    double eangle = 2*M_PI*frame_number/e ;
-    double eye[3] ;
+        double eangle = 2 * M_PI * frame_number / e;
+        double eye[3];
 
-    //Location of eye (world space)
-    eye[0] =   15.0*cos(eangle) ;
-    eye[1] =   10.0;
-    eye[2] =   15.0*sin(eangle) ;
+        //Location of eye (world space)
+        eye[0] = 15.0 * cos(eangle);
+        eye[1] = 10.0;
+        eye[2] = 15.0 * sin(eangle);
 
-    double coi[3] ;
-    
-    //Center of interest/where the eye is looking (world space)
-    coi[0] =  0 ;
-    coi[1] =  0 ;
-    coi[2] =  0 ;
+        double coi[3];
 
-    double up[3] ;
+        //Center of interest/where the eye is looking (world space)
+        coi[0] = 0;
+        coi[1] = 0;
+        coi[2] = 0;
 
-    //What direction is up for the eye
-    up[0] = eye[0] ;
-    up[1] = eye[1] + 1 ;
-    up[2] = eye[2] ;
+        double up[3];
 
-    double vm[4][4], vi[4][4];
-    M3d_view(vm,vi,  eye,coi,up) ;
+        //What direction is up for the eye
+        up[0] = eye[0];
+        up[1] = eye[1] + 1;
+        up[2] = eye[2];
 
-    double light_in_world_space[3] ;
-    light_in_world_space[0] =    300 ;
-    light_in_world_space[1] =    200 ;
-    light_in_world_space[2] =    300 ;
-    M3d_mat_mult_pt(light_in_eye_space, vm, light_in_world_space) ;
+        double vm[4][4], vi[4][4];
+        M3d_view(vm, vi, eye, coi, up);
+
+        double light_in_world_space[3];
+        light_in_world_space[0] = 300;
+        light_in_world_space[1] = 200;
+        light_in_world_space[2] = 300;
+        M3d_mat_mult_pt(light_in_eye_space, vm, light_in_world_space);
 
 
-    double Ka[3], Kd[3], Ks[3];
+        double Ka[3], Kd[3], Ks[3];
 
-    // Transform the object :
-    double Tvlist[100];
-    int Tn, Ttypelist[100];
-    double m[4][4], mi[4][4];
-    double obmat[4][4], obinv[4][4];
+        // Transform the object :
+        double Tvlist[100];
+        int Tn, Ttypelist[100];
+        double m[4][4], mi[4][4];
+        double obmat[4][4], obinv[4][4];
 
-    Tn = 0 ;
-    Ttypelist[Tn] = RX ; Tvlist[Tn] = 270 ; Tn++ ;  
+        Tn = 0;
+        Ttypelist[Tn] = RX; Tvlist[Tn] = 270; Tn++;
 
-    M3d_make_movement_sequence_matrix(m, mi, Tn, Ttypelist, Tvlist);
-    M3d_mat_mult(obmat, vm, m) ;
-    M3d_mat_mult(obinv, mi, vi) ;
-    
-    //Transforming vertices and normals from object space to eye space
-    M3d_mat_mult_points(x, y, z, obmat, x, y, z, num_v + 1);
+        M3d_make_movement_sequence_matrix(m, mi, Tn, Ttypelist, Tvlist);
+        M3d_mat_mult(obmat, vm, m);
+        M3d_mat_mult(obinv, mi, vi);
 
-    
+        //Transforming vertices and normals from object space to eye space
+        mat_mult_device(x, y, z, obmat, x, y, z, num_v + 1);
 
-    ///////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////
-    double origin[3], screen_pt[3] ;
-    double uvt[3], point[3], normal[3] ;
-    double argb[3] ;
 
-    origin[0] = 0;
-    origin[1] = 0;
-    origin[2] = 0;
 
-    int x_pix, y_pix;
-    for(x_pix = 0; x_pix < SCREEN_WIDTH; x_pix++)
-    {
-      SDL_Log("x: %d\n", x_pix);
-      for(y_pix = 0; y_pix < SCREEN_HEIGHT; y_pix++)
-      {
-        screen_pt[0] = x_pix - SCREEN_WIDTH/2;
-        screen_pt[1] = y_pix - SCREEN_HEIGHT/2;
-        screen_pt[2] = (SCREEN_WIDTH/2) / tan_half;
+        ///////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////
+        double origin[3], screen_pt[3];
+        double uvt[3], point[3], normal[3];
+        double argb[3];
 
-        s = intersect_all_triangles(origin, screen_pt, uvt, point, normal, obinv) ;
-        if (s == -1) 
+        origin[0] = 0;
+        origin[1] = 0;
+        origin[2] = 0;
+
+        int x_pix, y_pix;
+        for (x_pix = 0; x_pix < SCREEN_WIDTH; x_pix++)
         {
-         argb[0] = argb[1] = argb[2] = 0.5 ;
-        } 
-       else 
-       {
-          if(tris[s].mtl.index != -1)
-          {
-            if(tris[s].mtl.map_Ka)
+            SDL_Log("x: %d\n", x_pix);
+            for (y_pix = 0; y_pix < SCREEN_HEIGHT; y_pix++)
             {
-              get_rgb(tris[s].mtl.map_Ka, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Ka);
-            }
-            else{
-              Ka[0] = tris[s].mtl.Ka[0];
-              Ka[1] = tris[s].mtl.Ka[1];
-              Ka[2] = tris[s].mtl.Ka[2];
-            }
+                screen_pt[0] = x_pix - SCREEN_WIDTH / 2;
+                screen_pt[1] = y_pix - SCREEN_HEIGHT / 2;
+                screen_pt[2] = (SCREEN_WIDTH / 2) / tan_half;
 
-            if(tris[s].mtl.map_Kd)
-            {
-                            
-              get_rgb(tris[s].mtl.map_Kd, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Kd);
-            }
-            else{
-              Kd[0] = tris[s].mtl.Kd[0];
-              Kd[1] = tris[s].mtl.Kd[1];
-              Kd[2] = tris[s].mtl.Kd[2];
-            }
+                s = intersect_all_triangles_device(origin, screen_pt, uvt, point, normal, obinv);
+                if (s == -1)
+                {
+                    argb[0] = argb[1] = argb[2] = 0.5;
+                }
+                else
+                {
+                    if (tris[s].mtl.index != -1)
+                    {
+                        
+                        if (tris[s].mtl.map_Ka)
+                        {
+                            get_rgb(tris[s].mtl.map_Ka, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Ka);
+                        }
+                        else {
+                            Ka[0] = tris[s].mtl.Ka[0];
+                            Ka[1] = tris[s].mtl.Ka[1];
+                            Ka[2] = tris[s].mtl.Ka[2];
+                        }
 
-            if(tris[s].mtl.map_Ks)
-            {
-              get_rgb(tris[s].mtl.map_Ks, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Ks);
-            }
-            else{
-              Ks[0] = tris[s].mtl.Ks[0];
-              Ks[1] = tris[s].mtl.Ks[1];
-              Ks[2] = tris[s].mtl.Ks[2];
-            }
-        }
-        else
-        {
-          Ka[0] = 1.0; Ka[1] = 1.0; Ka[2] = 1.0;
-          Kd[0] = 1.0; Kd[1] = 1.0; Kd[2] = 1.0;
-          Ks[0] = 1.0; Ks[1] = 1.0; Ks[2] = 1.0;
-        }
-        Light_Model (Ka, Kd, Ks, origin, point, normal, argb);
-      }	
+                        if (tris[s].mtl.map_Kd)
+                        {
 
-      int screen_y;
-      screen_y = SCREEN_HEIGHT - y_pix;
+                            get_rgb(tris[s].mtl.map_Kd, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Kd);
+                        }
+                        else {
+                            Kd[0] = tris[s].mtl.Kd[0];
+                            Kd[1] = tris[s].mtl.Kd[1];
+                            Kd[2] = tris[s].mtl.Kd[2];
+                        }
 
-      set_rgb(argb[0], argb[1], argb[2]);
-      SDL_RenderDrawPoint(S_Renderer, x_pix, screen_y);
+                        if (tris[s].mtl.map_Ks)
+                        {
+                            get_rgb(tris[s].mtl.map_Ks, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Ks);
+                        }
+                        else {
+                            Ks[0] = tris[s].mtl.Ks[0];
+                            Ks[1] = tris[s].mtl.Ks[1];
+                            Ks[2] = tris[s].mtl.Ks[2];
+                        }
+                    }
+                    else
+                    {
+                        Ka[0] = 1.0; Ka[1] = 1.0; Ka[2] = 1.0;
+                        Kd[0] = 1.0; Kd[1] = 1.0; Kd[2] = 1.0;
+                        Ks[0] = 1.0; Ks[1] = 1.0; Ks[2] = 1.0;
+                    }
+                    Light_Model(Ka, Kd, Ks, origin, point, normal, argb);
+                }
 
-      } // end for y_pix
-    } // end for x_pix
+                int screen_y;
+                screen_y = SCREEN_HEIGHT - y_pix;
 
-    SDL_RenderPresent(S_Renderer) ;
-    char fname[200] ;
-    sprintf(fname, "pic/pic%04d.bmp",frame_number) ;
-    
-    save_image_to_file(fname, SCREEN_WIDTH, SCREEN_HEIGHT) ;
+                set_rgb(argb[0], argb[1], argb[2]);
+                SDL_RenderDrawPoint(S_Renderer, x_pix, screen_y);
 
-    //Transforming vertices and normals back to object space
-    M3d_mat_mult_points(x, y, z, obinv, x, y, z, num_v + 1);
-  } // end for frame_number
+            } // end for y_pix
+        } // end for x_pix
 
-  close_graphics();
-  close_object();
+        SDL_RenderPresent(S_Renderer);
+        char fname[200];
+        sprintf(fname, "pic/pic%04d.bmp", frame_number);
+
+        //save_image_to_file(fname, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+        //Transforming vertices and normals back to object space
+        mat_mult_device(x, y, z, obinv, x, y, z, num_v + 1);
+    } // end for frame_number
+
+    close_graphics();
+    close_object();
+
+    return 1;
 }

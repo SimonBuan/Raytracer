@@ -1,3 +1,5 @@
+#include "graphic_tools.h"
+
 #include <stdbool.h>
 
 #include <SDL.h>
@@ -21,8 +23,8 @@ int bmask = 0x000000FF;
 int amask = 0xFF000000;
 
 //Graphics window dimensions
-const int SCREEN_WIDTH = 400;
-const int SCREEN_HEIGHT = 400;
+const int SCREEN_WIDTH = 50;
+const int SCREEN_HEIGHT = 50;
 
 //Initializes SDL, and the graphics window and renderer
 //Sets render draw color to black
@@ -33,7 +35,7 @@ int init_graphics(int w, int h)
 	int success = true;
 
 	//Initialize SDL
-	if(SDL_Init(SDL_INIT_VIDEO) < 0)
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
 		SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 		success = false;
@@ -41,8 +43,8 @@ int init_graphics(int w, int h)
 	else
 	{
 		//Create window
-		S_Window =  SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_SHOWN);
-		if(S_Window == NULL)
+		S_Window = SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_SHOWN);
+		if (S_Window == NULL)
 		{
 			SDL_Log("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 			success = false;
@@ -51,7 +53,7 @@ int init_graphics(int w, int h)
 		{
 			//Create renderer for window
 			S_Renderer = SDL_CreateRenderer(S_Window, -1, SDL_RENDERER_ACCELERATED);
-			if(S_Renderer == NULL)
+			if (S_Renderer == NULL)
 			{
 				SDL_Log("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
 				success = false;
@@ -67,19 +69,19 @@ int init_graphics(int w, int h)
 }
 
 //Initializes the SDL image library used for loading textures
-int init_IMG(){
-  int flags = IMG_INIT_JPG | IMG_INIT_PNG;
-  int init = IMG_Init(flags);
+int init_IMG() {
+	int flags = IMG_INIT_JPG | IMG_INIT_PNG;
+	int init = IMG_Init(flags);
 
-  if(init&flags != flags){
-    SDL_Log("Failed to init jpg and png\n");
-    SDL_Log("%s\n", IMG_GetError());
-    return false;
-  }
-  else{
-    SDL_Log("Succesfully loaded IMG\n");
-    return true;
-  }
+	if (init & (flags != flags)) {
+		SDL_Log("Failed to init jpg and png\n");
+		SDL_Log("%s\n", IMG_GetError());
+		return false;
+	}
+	else {
+		SDL_Log("Succesfully loaded IMG\n");
+		return true;
+	}
 }
 
 //Destroys graphics window and renderer
@@ -95,8 +97,8 @@ void close_graphics()
 	//Quit SDL subsystems
 	SDL_Quit();
 
-  //Quit the image loading library
-  IMG_Quit();
+	//Quit the image loading library
+	IMG_Quit();
 }
 
 //Convert r,g,b values from range [0, 1] to [0, 255]
@@ -110,86 +112,86 @@ void set_rgb(double r, double g, double b)
 	SDL_SetRenderDrawColor(S_Renderer, r, g, b, 0xFF);
 }
 
-void save_image_to_file(const void *filename, int w, int h)
+void save_image_to_file(const char* filename, int w, int h)
 {
-	sshot = SDL_CreateRGBSurface(0, w, h, 32, rmask, gmask,bmask, amask);
+	sshot = SDL_CreateRGBSurface(0, w, h, 32, rmask, gmask, bmask, amask);
 	SDL_RenderReadPixels(S_Renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
 	SDL_SaveBMP(sshot, filename);
 	SDL_FreeSurface(sshot);
 }
 
 //Return a pixel on a surface based on the x- and y location of the pixel
-uint32_t get_pixel(SDL_Surface *surface, int x, int y)
+uint32_t get_pixel(SDL_Surface* surface, int x, int y)
 {
-  int bpp = surface->format->BytesPerPixel;
+	int bpp = surface->format->BytesPerPixel;
 
-  //Address of the pixel we are retrieving
-  uint8_t *p = (uint8_t *)surface->pixels + y * surface->pitch + x * bpp;
+	//Address of the pixel we are retrieving
+	uint8_t* p = (uint8_t*)surface->pixels + y * surface->pitch + x * bpp;
 
-  switch(bpp)
-  {
-    case 1:
-      return *p;
-      break;
+	switch (bpp)
+	{
+	case 1:
+		return *p;
+		break;
 
-    case 2:
-      return *(uint16_t *)p;
-      break;
+	case 2:
+		return *(uint16_t*)p;
+		break;
 
-    case 3:
-      if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
-      {
-        return p[0] << 16 | p[1] << 8 | p[2];
-      }
-      else
-      {
-        return p[0] | p[1] << 8 | p[2] << 16;
-      }
-      break;
+	case 3:
+		if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+		{
+			return p[0] << 16 | p[1] << 8 | p[2];
+		}
+		else
+		{
+			return p[0] | p[1] << 8 | p[2] << 16;
+		}
+		break;
 
-    case 4:
-      return *(uint32_t *)p;
+	case 4:
+		return *(uint32_t*)p;
 
-    default:
-      return 0;
-  }
+	default:
+		return 0;
+	}
 }
 
 //Gets rgb from texture map
-void get_rgb(SDL_Surface *texture, int index_At, int index_Bt, int index_Ct, double uv[2], double rgb[3])
+void get_rgb(SDL_Surface* texture, int index_At, int index_Bt, int index_Ct, double uv[2], double rgb[3])
 {
-  
-  double At[2], Bt[2], Ct[2];
-  At[0] = u[index_At]; At[1] = v[index_At];
-  Bt[0] = u[index_Bt]; Bt[1] = v[index_Bt];
-  Ct[0] = u[index_Ct]; Ct[1] = v[index_Ct];
 
-  double width, height;
-  
-  //Find width and height of the texture
-  width = (double) texture->w;
-  height = (double) texture->h;
+	double At[2], Bt[2], Ct[2];
+	At[0] = u[index_At]; At[1] = v[index_At];
+	Bt[0] = u[index_Bt]; Bt[1] = v[index_Bt];
+	Ct[0] = u[index_Ct]; Ct[1] = v[index_Ct];
 
-  double x,y;
-  int xi, yi;
+	double width, height;
 
-  //Find where in the triangle we intersected (Range [0, 1]) 
-  x = (1-uv[0]-uv[1])*At[0] + uv[0]*Bt[0] + uv[1]*Ct[0];
-  y = (1-uv[0]-uv[1])*At[1] + uv[0]*Bt[1] + uv[1]*Ct[1];
+	//Find width and height of the texture
+	width = (double)texture->w;
+	height = (double)texture->h;
 
-  //IMG has (0,0) in top left corner, we want (0,0) in bottom left corner
-  y = 1 - y;
+	double x, y;
+	int xi, yi;
 
-  x *= width; y *= height;
+	//Find where in the triangle we intersected (Range [0, 1]) 
+	x = (1 - uv[0] - uv[1]) * At[0] + uv[0] * Bt[0] + uv[1] * Ct[0];
+	y = (1 - uv[0] - uv[1]) * At[1] + uv[0] * Bt[1] + uv[1] * Ct[1];
 
-  xi = (int) x; yi = (int) y;
+	//IMG has (0,0) in top left corner, we want (0,0) in bottom left corner
+	y = 1 - y;
 
-  uint8_t r, g, b;
+	x *= width; y *= height;
 
-  uint32_t pixel = get_pixel(texture, xi, yi);
-  SDL_GetRGB(pixel, texture->format, &r, &g, &b);
+	xi = (int)x; yi = (int)y;
 
-  rgb[0] = (r*1.0)/255;
-  rgb[1] = (g*1.0)/255;
-  rgb[2] = (b*1.0)/255;
+	uint8_t r, g, b;
+
+	uint32_t pixel = get_pixel(texture, xi, yi);
+	SDL_GetRGB(pixel, texture->format, &r, &g, &b);
+
+	rgb[0] = (r * 1.0) / 255;
+	rgb[1] = (g * 1.0) / 255;
+	rgb[2] = (b * 1.0) / 255;
 }
