@@ -29,7 +29,7 @@ const int SCREEN_HEIGHT = 50;
 //Initializes SDL, and the graphics window and renderer
 //Sets render draw color to black
 //Returns 1 on success, 0 on failure
-int init_graphics(int w, int h)
+int init_graphics()
 {
 	SDL_Log("Initalizing graphics\n");
 	int success = true;
@@ -43,7 +43,7 @@ int init_graphics(int w, int h)
 	else
 	{
 		//Create window
-		S_Window = SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_SHOWN);
+		S_Window = SDL_CreateWindow("Raytracer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 		if (S_Window == NULL)
 		{
 			SDL_Log("Window could not be created! SDL_Error: %s\n", SDL_GetError());

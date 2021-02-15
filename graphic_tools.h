@@ -2,21 +2,10 @@
 #define _graphic_tools_h
 
 #include <SDL.h>
-
-//Window used for rendering
 extern SDL_Window* S_Window;
 
 //Window renderer
 extern SDL_Renderer* S_Renderer;
-
-//Surface used to save displayed image to file
-extern SDL_Surface* sshot;
-
-//RGB and alpha masks used for screenshots
-extern int rmask;
-extern int gmask;
-extern int bmask;
-extern int amask;
 
 //Graphics window dimensions
 extern const int SCREEN_WIDTH;
@@ -25,7 +14,7 @@ extern const int SCREEN_HEIGHT;
 //Initializes SDL, and the graphics window and renderer
 //Sets render draw color to black
 //Returns 1 on success, 0 on failure
-int init_graphics(int w, int h);
+int init_graphics();
 
 //Initializes the SDL image library used for loading textures
 int init_IMG();

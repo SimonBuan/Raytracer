@@ -13,7 +13,7 @@
 
 int main(int argc, char** argv)
 {
-    init_graphics(SCREEN_WIDTH, SCREEN_HEIGHT);
+    init_graphics();
     init_IMG();
 
     double degrees_of_half_angle;
