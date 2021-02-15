@@ -2,6 +2,7 @@
 #include <math.h>
 #include "kernel.h"
 #include "obj_reader.h"
+#include <stdio.h>
 
 // To support the light model :
 double light_in_eye_space[3];
@@ -98,9 +99,9 @@ int Light_Model(double Ka[3],
 	else f = 0;
 
 	double specular[3];
-	specular[0] = f * Ks[0] * DIFFUSE;
-	specular[1] = f * Ks[1] * DIFFUSE;
-	specular[2] = f * Ks[2] * DIFFUSE;
+	specular[0] = f * Ks[0] * (1.0 - DIFFUSE - AMBIENT);
+	specular[1] = f * Ks[1] * (1.0 - DIFFUSE - AMBIENT);
+	specular[2] = f * Ks[2] * (1.0 - DIFFUSE - AMBIENT);
 
 	/////FINAL COLOR/////
 	argb[0] = ambient[0] + diffuse[0] + specular[0];
