@@ -19,15 +19,10 @@ int Light_Model(double Ka[3],
 	double n[3],
 	double argb[3]);
 
-
-// N = resulting normal vector from interpolation (output)
-// Na,Nb,Nc = Normal vectors at vertices A,B,C (input)
-void interpolate_normal_vector(double N[3],
-	double Na[3],
-	double Nb[3],
-	double Nc[3],
-	double uv[2],
-	double obinv[4][4]);
+//Interpolate normal vector based on uv-values
+//tri is the index of the triangle where intersection happened
+//resulting vector is stored in normal
+void interpolate_normal_vector(int tri, double uv[2], double obinv[4][4], double normal[3]);
 
 
 #endif

@@ -23,8 +23,8 @@ int bmask = 0x000000FF;
 int amask = 0xFF000000;
 
 //Graphics window dimensions
-const int SCREEN_WIDTH = 100;
-const int SCREEN_HEIGHT = 100;
+const int SCREEN_WIDTH = 400;
+const int SCREEN_HEIGHT = 400;
 
 //Initializes SDL, and the graphics window and renderer
 //Sets render draw color to black

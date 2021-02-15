@@ -18,12 +18,12 @@ int main(int argc, char** argv)
     double degrees_of_half_angle;
 
     degrees_of_half_angle = 30;
-    read_obj_file("./objects/plane/11803_Airplane_v1_l1.obj");
+    read_obj_file("./objects/teapot/teapot.obj");
 
     double tan_half = tan(degrees_of_half_angle * M_PI / 180);
 
     int s, e, frame_number;
-    s = 10; e = 15;
+    s = 5; e = 15;
     for (frame_number = s; frame_number < e; frame_number++) {
         SDL_Log("frame: %d\n", frame_number);
         set_rgb(0, 0, 0);
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
         ///////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////
         double origin[3], screen_pt[3];
-        double uvt[3], point[3], normal[3];
+        double uv[2], point[3], normal[3];
         double argb[3];
 
         origin[0] = 0;
@@ -103,19 +103,20 @@ int main(int argc, char** argv)
                 screen_pt[1] = y_pix - SCREEN_HEIGHT / 2;
                 screen_pt[2] = (SCREEN_WIDTH / 2) / tan_half;
 
-                s = intersect_all_triangles_device(origin, screen_pt, uvt, point, normal, obinv);
+                s = intersect_all_triangles_device(origin, screen_pt, uv, point);
                 if (s == -1)
                 {
                     argb[0] = argb[1] = argb[2] = 0.5;
                 }
                 else
                 {
+                    interpolate_normal_vector(s, uv, obinv, normal);
                     if (tris[s].mtl.index != -1)
                     {
                         
                         if (tris[s].mtl.map_Ka)
                         {
-                            get_rgb(tris[s].mtl.map_Ka, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Ka);
+                            get_rgb(tris[s].mtl.map_Ka, tris[s].At, tris[s].Bt, tris[s].Ct, uv, Ka);
                         }
                         else {
                             Ka[0] = tris[s].mtl.Ka[0];
@@ -126,7 +127,7 @@ int main(int argc, char** argv)
                         if (tris[s].mtl.map_Kd)
                         {
 
-                            get_rgb(tris[s].mtl.map_Kd, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Kd);
+                            get_rgb(tris[s].mtl.map_Kd, tris[s].At, tris[s].Bt, tris[s].Ct, uv, Kd);
                         }
                         else {
                             Kd[0] = tris[s].mtl.Kd[0];
@@ -136,7 +137,7 @@ int main(int argc, char** argv)
 
                         if (tris[s].mtl.map_Ks)
                         {
-                            get_rgb(tris[s].mtl.map_Ks, tris[s].At, tris[s].Bt, tris[s].Ct, uvt, Ks);
+                            get_rgb(tris[s].mtl.map_Ks, tris[s].At, tris[s].Bt, tris[s].Ct, uv, Ks);
                         }
                         else {
                             Ks[0] = tris[s].mtl.Ks[0];
