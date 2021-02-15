@@ -23,8 +23,8 @@ int bmask = 0x000000FF;
 int amask = 0xFF000000;
 
 //Graphics window dimensions
-const int SCREEN_WIDTH = 50;
-const int SCREEN_HEIGHT = 50;
+const int SCREEN_WIDTH = 100;
+const int SCREEN_HEIGHT = 100;
 
 //Initializes SDL, and the graphics window and renderer
 //Sets render draw color to black
@@ -112,9 +112,9 @@ void set_rgb(double r, double g, double b)
 	SDL_SetRenderDrawColor(S_Renderer, r, g, b, 0xFF);
 }
 
-void save_image_to_file(const char* filename, int w, int h)
+void save_image_to_file(const char* filename)
 {
-	sshot = SDL_CreateRGBSurface(0, w, h, 32, rmask, gmask, bmask, amask);
+	sshot = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32, rmask, gmask, bmask, amask);
 	SDL_RenderReadPixels(S_Renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
 	SDL_SaveBMP(sshot, filename);
 	SDL_FreeSurface(sshot);

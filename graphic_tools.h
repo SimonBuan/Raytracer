@@ -27,7 +27,7 @@ void close_graphics();
 void set_rgb(double r, double g, double b);
 
 //Saves the current rendering to a bitmap file
-void save_image_to_file(const char* filename, int w, int h);
+void save_image_to_file(const char* filename);
 
 //Return a pixel on a surface based on the x- and y location of the pixel
 uint32_t get_pixel(SDL_Surface* surface, int x, int y);
