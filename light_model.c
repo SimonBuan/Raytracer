@@ -6,6 +6,7 @@
 
 // To support the light model :
 double light_in_eye_space[3];
+double light_rgb[3];
 double AMBIENT = 0.2;
 double DIFFUSE = 0.5;
 double SPECPOW = 50;
@@ -76,9 +77,9 @@ int Light_Model(double Ka[3],
 	/////DIFFUSE/////
 
 	double diffuse[3];
-	diffuse[0] = NdotL * Kd[0] * DIFFUSE;
-	diffuse[1] = NdotL * Kd[1] * DIFFUSE;
-	diffuse[2] = NdotL * Kd[2] * DIFFUSE;
+	diffuse[0] = NdotL * Kd[0] * DIFFUSE * light_rgb[0];
+	diffuse[1] = NdotL * Kd[1] * DIFFUSE * light_rgb[1];
+	diffuse[2] = NdotL * Kd[2] * DIFFUSE * light_rgb[2];
 
 	for (int i = 0; i < 3; i++)
 	{
@@ -99,9 +100,9 @@ int Light_Model(double Ka[3],
 	else f = 0;
 
 	double specular[3];
-	specular[0] = f * Ks[0] * (1.0 - DIFFUSE - AMBIENT);
-	specular[1] = f * Ks[1] * (1.0 - DIFFUSE - AMBIENT);
-	specular[2] = f * Ks[2] * (1.0 - DIFFUSE - AMBIENT);
+	specular[0] = f * Ks[0] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[0];
+	specular[1] = f * Ks[1] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[1];
+	specular[2] = f * Ks[2] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[2];
 
 	/////FINAL COLOR/////
 	argb[0] = ambient[0] + diffuse[0] + specular[0];

@@ -2,6 +2,7 @@
 #define _light_model_h
 
 extern double light_in_eye_space[];
+extern double light_rgb[];
 
 // s,p,n in eyespace
 // Ka, Kd, Ks == inherent ambient, diffuse and spec color of object (input to this function)

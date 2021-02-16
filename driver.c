@@ -23,7 +23,7 @@ int main(int argc, char** argv)
     double tan_half = tan(degrees_of_half_angle * M_PI / 180);
 
     int s, e, frame_number;
-    s = 5; e = 15;
+    s = 0; e = 15;
     for (frame_number = s; frame_number < e; frame_number++) {
         SDL_Log("frame: %d\n", frame_number);
         set_rgb(0, 0, 0);
@@ -61,6 +61,9 @@ int main(int argc, char** argv)
         light_in_world_space[2] = 300;
         M3d_mat_mult_pt(light_in_eye_space, vm, light_in_world_space);
 
+        light_rgb[0] = 0.6;
+        light_rgb[1] = 0.8;
+        light_rgb[2] = 0.9;
 
         double Ka[3], Kd[3], Ks[3];
 
