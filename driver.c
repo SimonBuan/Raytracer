@@ -29,7 +29,6 @@ int main(int argc, char** argv)
         set_rgb(0, 0, 0);
         SDL_RenderClear(S_Renderer);
 
-
         double eangle = 2 * M_PI * frame_number / e;
         double eye[3];
 
@@ -56,14 +55,27 @@ int main(int argc, char** argv)
         M3d_view(vm, vi, eye, coi, up);
 
         double light_in_world_space[3];
+
+        num_lights = 0;
+        light_rgb[num_lights][0] = 0.8;
+        light_rgb[num_lights][1] = 0.0;
+        light_rgb[num_lights][2] = 0.0;
+        
         light_in_world_space[0] = 300;
         light_in_world_space[1] = 200;
         light_in_world_space[2] = 300;
-        M3d_mat_mult_pt(light_in_eye_space, vm, light_in_world_space);
+        M3d_mat_mult_pt(light_in_eye_space[num_lights], vm, light_in_world_space);
+        num_lights++;
 
-        light_rgb[0] = 0.6;
-        light_rgb[1] = 0.8;
-        light_rgb[2] = 0.9;
+        light_rgb[num_lights][0] = 0.1;
+        light_rgb[num_lights][1] = 0.0;
+        light_rgb[num_lights][2] = 1.0;
+
+        light_in_world_space[0] = -300;
+        light_in_world_space[1] = -200;
+        light_in_world_space[2] = -300;
+        M3d_mat_mult_pt(light_in_eye_space[num_lights], vm, light_in_world_space);
+        num_lights++;
 
         double Ka[3], Kd[3], Ks[3];
 

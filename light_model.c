@@ -5,19 +5,21 @@
 #include <stdio.h>
 
 // To support the light model :
-double light_in_eye_space[3];
-double light_rgb[3];
+int num_lights;
+double light_in_eye_space[100][3];
+double light_rgb[100][3];
 double AMBIENT = 0.2;
 double DIFFUSE = 0.5;
 double SPECPOW = 50;
 
-int Light_Model(double Ka[3],
+int Light_Model_Single(double Ka[3],
 	double Kd[3],
 	double Ks[3],
 	double s[3],
 	double p[3],
 	double n[3],
-	double argb[3])
+	double argb[3],
+	int light_num)
 	// s,p,n in eyespace
 
 	// Ka, Kd, Ks == inherent ambient, diffuse and spec color of object (input to this function)
@@ -36,17 +38,11 @@ int Light_Model(double Ka[3],
 	if (M3d_norm(N, n) == 0) return 0;
 
 	double L[3]; //Vector from point to light
-	L[0] = light_in_eye_space[0] - p[0];
-	L[1] = light_in_eye_space[1] - p[1];
-	L[2] = light_in_eye_space[2] - p[2];
+	L[0] = light_in_eye_space[light_num][0] - p[0];
+	L[1] = light_in_eye_space[light_num][1] - p[1];
+	L[2] = light_in_eye_space[light_num][2] - p[2];
 	if (M3d_norm(L, L) == 0) return 0;
 	double NdotL = M3d_dot_product(N, L);
-
-	/////AMBIENT/////
-	double ambient[3];
-	ambient[0] = AMBIENT * Ka[0];
-	ambient[1] = AMBIENT * Ka[1];
-	ambient[2] = AMBIENT * Ka[2];
 
 	double shadow_S[3]; //Start of ray used for checking shadows
 	shadow_S[0] = p[0] + L[0] * 0.001;
@@ -58,11 +54,11 @@ int Light_Model(double Ka[3],
 	double point[3];
 
 	//Check if there is an object between light and our intersection point
-	if (intersect_all_triangles_device(shadow_S, light_in_eye_space, uv, point) != -1) {
+	if (intersect_all_triangles_device(shadow_S, light_in_eye_space[light_num], uv, point) != -1) {
 		//Light blocked by object, just want ambient
-		argb[0] = ambient[0];
-		argb[1] = ambient[1];
-		argb[2] = ambient[2];
+		argb[0] = 0;
+		argb[1] = 0;
+		argb[2] = 0;
 		return 1;
 	}
 
@@ -77,9 +73,9 @@ int Light_Model(double Ka[3],
 	/////DIFFUSE/////
 
 	double diffuse[3];
-	diffuse[0] = NdotL * Kd[0] * DIFFUSE * light_rgb[0];
-	diffuse[1] = NdotL * Kd[1] * DIFFUSE * light_rgb[1];
-	diffuse[2] = NdotL * Kd[2] * DIFFUSE * light_rgb[2];
+	diffuse[0] = NdotL * Kd[0] * DIFFUSE * light_rgb[light_num][0];
+	diffuse[1] = NdotL * Kd[1] * DIFFUSE * light_rgb[light_num][1];
+	diffuse[2] = NdotL * Kd[2] * DIFFUSE * light_rgb[light_num][2];
 
 	for (int i = 0; i < 3; i++)
 	{
@@ -100,14 +96,44 @@ int Light_Model(double Ka[3],
 	else f = 0;
 
 	double specular[3];
-	specular[0] = f * Ks[0] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[0];
-	specular[1] = f * Ks[1] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[1];
-	specular[2] = f * Ks[2] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[2];
+	specular[0] = f * Ks[0] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[light_num][0];
+	specular[1] = f * Ks[1] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[light_num][1];
+	specular[2] = f * Ks[2] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[light_num][2];
 
 	/////FINAL COLOR/////
-	argb[0] = ambient[0] + diffuse[0] + specular[0];
-	argb[1] = ambient[1] + diffuse[1] + specular[1];
-	argb[2] = ambient[2] + diffuse[2] + specular[2];
+	argb[0] = diffuse[0] + specular[0];
+	argb[1] = diffuse[1] + specular[1];
+	argb[2] = diffuse[2] + specular[2];
+
+	return 1;
+}
+
+int Light_Model(double Ka[3],
+		double Kd[3],
+		double Ks[3],
+		double s[3],
+		double p[3],
+		double n[3],
+		double argb[3])
+{
+	/////AMBIENT/////
+	double ambient[3];
+	ambient[0] = AMBIENT * Ka[0];
+	ambient[1] = AMBIENT * Ka[1];
+	ambient[2] = AMBIENT * Ka[2];
+
+	int i, j;
+	double rgb[3];
+	argb[0] = 0; argb[1] = 0; argb[2] = 0;
+	for (i = 0; i < num_lights; i++) {
+		Light_Model_Single(Ka, Kd, Ks, s, p, n, rgb, i);
+		for (j = 0; j < 3; j++) {
+			argb[j] += rgb[j];
+		}
+	}
+	for (j = 0; j < 3; j++) {
+		if (argb[j] > 1) argb[j] = 1;
+	}
 
 	return 1;
 }
