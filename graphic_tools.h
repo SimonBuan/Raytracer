@@ -22,11 +22,11 @@ int init_IMG();
 //Quits SDL subsystems
 void close_graphics();
 
-//Convert r,g,b values from range [0, 1] to [0, 255]
 //Sets render draw color to new r, g, b values
+//Expects rgb in range [0,1]
 void set_rgb(double r, double g, double b);
 
-//Saves the current rendering to a bitmap file
+//Saves the current rendering to a .bmp file
 void save_image_to_file(const char* filename);
 
 //Return a pixel on a surface based on the x- and y location of the pixel

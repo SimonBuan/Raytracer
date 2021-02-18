@@ -4,6 +4,8 @@
 extern int num_lights;
 extern double light_in_eye_space[100][3];
 extern double light_rgb[100][3];
+extern double light_attenuation[100][2];
+extern double light_max_dist[100];
 
 // s,p,n in eyespace
 // Ka, Kd, Ks == inherent ambient, diffuse and spec color of object (input to this function)

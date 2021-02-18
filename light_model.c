@@ -8,6 +8,8 @@
 int num_lights;
 double light_in_eye_space[100][3];
 double light_rgb[100][3];
+double light_attenuation[100][2];
+double light_max_dist[100];
 double AMBIENT = 0.2;
 double DIFFUSE = 0.5;
 double SPECPOW = 50;
@@ -41,8 +43,19 @@ int Light_Model_Single(double Ka[3],
 	L[0] = light_in_eye_space[light_num][0] - p[0];
 	L[1] = light_in_eye_space[light_num][1] - p[1];
 	L[2] = light_in_eye_space[light_num][2] - p[2];
+	len = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+	if (len == 0) return 0;
 	if (M3d_norm(L, L) == 0) return 0;
 	double NdotL = M3d_dot_product(N, L);
+
+	if (len > light_max_dist[light_num]) {
+		argb[0] = 0;
+		argb[1] = 0;
+		argb[2] = 0;
+		return 1;
+	}
+	double attenuation = 1 + light_attenuation[light_num][0] * len + light_attenuation[light_num][1] * len * len;
+	
 
 	double shadow_S[3]; //Start of ray used for checking shadows
 	shadow_S[0] = p[0] + L[0] * 0.001;
@@ -101,9 +114,9 @@ int Light_Model_Single(double Ka[3],
 	specular[2] = f * Ks[2] * (1.0 - DIFFUSE - AMBIENT) * light_rgb[light_num][2];
 
 	/////FINAL COLOR/////
-	argb[0] = diffuse[0] + specular[0];
-	argb[1] = diffuse[1] + specular[1];
-	argb[2] = diffuse[2] + specular[2];
+	argb[0] = (diffuse[0] + specular[0]) / attenuation;
+	argb[1] = (diffuse[1] + specular[1]) / attenuation;
+	argb[2] = (diffuse[2] + specular[2]) / attenuation;
 
 	return 1;
 }
@@ -121,11 +134,11 @@ int Light_Model(double Ka[3],
 	ambient[0] = AMBIENT * Ka[0];
 	ambient[1] = AMBIENT * Ka[1];
 	ambient[2] = AMBIENT * Ka[2];
-
 	int i, j;
 	double rgb[3];
-	argb[0] = 0; argb[1] = 0; argb[2] = 0;
+	argb[0] = ambient[0]; argb[1] = ambient[1]; argb[2] = ambient[2];
 	for (i = 0; i < num_lights; i++) {
+		
 		Light_Model_Single(Ka, Kd, Ks, s, p, n, rgb, i);
 		for (j = 0; j < 3; j++) {
 			argb[j] += rgb[j];
@@ -134,7 +147,6 @@ int Light_Model(double Ka[3],
 	for (j = 0; j < 3; j++) {
 		if (argb[j] > 1) argb[j] = 1;
 	}
-
 	return 1;
 }
 

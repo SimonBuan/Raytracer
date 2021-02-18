@@ -23,7 +23,7 @@ int main(int argc, char** argv)
     double tan_half = tan(degrees_of_half_angle * M_PI / 180);
 
     int s, e, frame_number;
-    s = 0; e = 15;
+    s = 0; e = 60;
     for (frame_number = s; frame_number < e; frame_number++) {
         SDL_Log("frame: %d\n", frame_number);
         set_rgb(0, 0, 0);
@@ -57,13 +57,20 @@ int main(int argc, char** argv)
         double light_in_world_space[3];
 
         num_lights = 0;
-        light_rgb[num_lights][0] = 0.8;
-        light_rgb[num_lights][1] = 0.0;
-        light_rgb[num_lights][2] = 0.0;
+
+        light_in_world_space[0] = 0.0;
+        light_in_world_space[1] = 15.0 + frame_number;
+        light_in_world_space[2] = 0.0;
+
+        light_rgb[num_lights][0] = 1.0;
+        light_rgb[num_lights][1] = 1.0;
+        light_rgb[num_lights][2] = 1.0;
+
+        light_attenuation[num_lights][0] = 0.045;
+        light_attenuation[num_lights][1] = 0.0075;
+
+        light_max_dist[num_lights] = 100;
         
-        light_in_world_space[0] = 300;
-        light_in_world_space[1] = 200;
-        light_in_world_space[2] = 300;
         M3d_mat_mult_pt(light_in_eye_space[num_lights], vm, light_in_world_space);
         num_lights++;
 
@@ -71,9 +78,14 @@ int main(int argc, char** argv)
         light_rgb[num_lights][1] = 0.0;
         light_rgb[num_lights][2] = 1.0;
 
-        light_in_world_space[0] = -300;
-        light_in_world_space[1] = -200;
-        light_in_world_space[2] = -300;
+        light_in_world_space[0] = -10;
+        light_in_world_space[1] = 10;
+        light_in_world_space[2] = 0;
+
+        light_attenuation[num_lights][0] = 0.09;
+        light_attenuation[num_lights][1] = 0.032;
+
+        light_max_dist[num_lights] = 50;
         M3d_mat_mult_pt(light_in_eye_space[num_lights], vm, light_in_world_space);
         num_lights++;
 
