@@ -9,6 +9,8 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+#define MAX_KEYWORD_LENGTH 100
+
 char drive[_MAX_DRIVE]; //Drive of current obj file
 char dir[_MAX_DIR]; //Directory of the current obj file
 
@@ -22,16 +24,17 @@ Material* mats;
 
 int get_face_format(FILE* f) {
 	//Finds the format and info provided for the current face
+	//Returns 1 for v, 2 for v/vt, 3 for v/vt/vn and 4 for v//vn
 
 	int a, b, c, ret;
 	char d;
 	long pos = ftell(f);
-	ret = fscanf(f, "%d/%d/%d", &a, &b, &c);
+	ret = fscanf_s(f, "%d/%d/%d", &a, &b, &c);
 	//Both face of format v and v//vn returns 1
 	//Face of format v/vt returns 2
 	//Face of format v/vt/vn returns 3
 	if (ret == 1) {
-		fscanf(f, "%c", &d);
+		fscanf_s(f, "%c", &d, 1);
 		if (d == '/') {
 			//Format v//vn
 			ret = 4;
@@ -73,7 +76,6 @@ void center_and_scale_object()
 {
 	// center the object at the origin
 	// scale the object to fit inside of a 15x15x15 bounding box
-	int index_A, index_B, index_C;
 	double xc, yc, zc;
 	double x_min, y_min, z_min, x_max, y_max, z_max;
 
@@ -139,22 +141,24 @@ void init_mat()
 //Returns the number of new materials in .mtl file at fname
 int allocate_mtl_mem(char* fname) {
 	FILE* f;
-	char keyword[100];
+	errno_t err;
+	char keyword[MAX_KEYWORD_LENGTH];
 
 	int num = 0;
 
-	f = fopen(fname, "rb");
-	if (f == NULL) {
+	err = fopen_s(&f, fname, "rb");
+	if (err != 0) {
 		SDL_Log("can't open file, %s\n", fname);
+		exit(1);
 	}
-	while (fscanf(f, "%s", keyword) == 1) {
+	while (fscanf_s(f, "%s", keyword, MAX_KEYWORD_LENGTH) == 1) {
 		if (strcmp(keyword, "newmtl") == 0) {
 			num++;
 		}
 		else {
 			//Don't need to allocate memory for anything else, 
 			//skip line
-			fgets(keyword, 100, f);
+			fgets(keyword, MAX_KEYWORD_LENGTH, f);
 		}
 	}
 	return num;
@@ -163,39 +167,39 @@ int allocate_mtl_mem(char* fname) {
 int read_mtl_file(char* fname) {
 	//Parses .mtl material file
 	FILE* f;
+	errno_t err;
 	SDL_Surface* image;
-	char keyword[100];
-	char name[100];
-	char path[100];
+	char keyword[MAX_KEYWORD_LENGTH];
+	char name[_MAX_FNAME];
+	char path[_MAX_PATH];
 	double dump;
-	f = fopen(fname, "rb");
-	if (f == NULL) {
+	err = fopen_s(&f, fname, "rb");
+	if (err != 0) {
 		SDL_Log("can't open file, %s\n", fname);
 		exit(1);
 	}
-	while (fscanf(f, "%s", keyword) == 1) {
+	while (fscanf_s(f, "%s", keyword, MAX_KEYWORD_LENGTH) == 1) {
 		if (strcmp(keyword, "newmtl") == 0) {
-			fscanf(f, "%s", mats[num_mats].name);
+			fscanf_s(f, "%s", mats[num_mats].name, _MAX_FNAME);
 			init_mat();
-
 			num_mats++;
 		}
 		else if (strcmp(keyword, "Ka") == 0) {//ambient rgb
-			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Ka[0], &mats[num_mats - 1].Ka[1], &mats[num_mats - 1].Ka[2]);
+			fscanf_s(f, "%lf %lf %lf", &mats[num_mats - 1].Ka[0], &mats[num_mats - 1].Ka[1], &mats[num_mats - 1].Ka[2]);
 		}
 		else if (strcmp(keyword, "Kd") == 0) {//diffuse rgb
-			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Kd[0], &mats[num_mats - 1].Kd[1], &mats[num_mats - 1].Kd[2]);
+			fscanf_s(f, "%lf %lf %lf", &mats[num_mats - 1].Kd[0], &mats[num_mats - 1].Kd[1], &mats[num_mats - 1].Kd[2]);
 		}
 		else if (strcmp(keyword, "Ks") == 0) {//specular rgb
-			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Ks[0], &mats[num_mats - 1].Ks[1], &mats[num_mats - 1].Ks[2]);
+			fscanf_s(f, "%lf %lf %lf", &mats[num_mats - 1].Ks[0], &mats[num_mats - 1].Ks[1], &mats[num_mats - 1].Ks[2]);
 		}
 		else if (strcmp(keyword, "Ke") == 0) {//specular rgb
-			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Ke[0], &mats[num_mats - 1].Ke[1], &mats[num_mats - 1].Ke[2]);
+			fscanf_s(f, "%lf %lf %lf", &mats[num_mats - 1].Ke[0], &mats[num_mats - 1].Ke[1], &mats[num_mats - 1].Ke[2]);
 		}
 		else if (strcmp(keyword, "map_Ka") == 0) {//ambient texture map
-			fscanf(f, "%s", name);
-			strcpy(path, dir);
-			strcat(path, name);
+			fscanf_s(f, "%s", name, _MAX_FNAME);
+			strcpy_s(path, _MAX_PATH, dir);
+			strcat_s(path, _MAX_PATH, name);
 			image = IMG_Load(path);
 			if (!image)
 			{
@@ -207,9 +211,9 @@ int read_mtl_file(char* fname) {
 			}
 		}
 		else if (strcmp(keyword, "map_Kd") == 0) {//diffuse texture map
-			fscanf(f, "%s", name);
-			strcpy(path, dir);
-			strcat(path, name);
+			fscanf_s(f, "%s", name, _MAX_FNAME);
+			strcpy_s(path, _MAX_PATH, dir);
+			strcat_s(path, _MAX_PATH, name);
 			image = IMG_Load(path);
 			if (!image)
 			{
@@ -221,10 +225,8 @@ int read_mtl_file(char* fname) {
 			}
 		}
 		else if (strcmp(keyword, "map_Ks") == 0) {//specular texture map
-			if (num_tris == 17744)
-				fscanf(f, "%s", name);
-			strcpy(path, dir);
-			strcat(path, name);
+			strcpy_s(path, _MAX_PATH, dir);
+			strcat_s(path, _MAX_PATH, name);
 			image = IMG_Load(path);
 			if (!image)
 			{
@@ -239,24 +241,24 @@ int read_mtl_file(char* fname) {
 			fgets(name, 100, f);
 		}
 		else if (strcmp(keyword, "Tr") == 0) {
-			fscanf(f, "%lf", &dump);
+			fscanf_s(f, "%lf", &dump);
 		}
 		else if (strcmp(keyword, "Tf") == 0) {
-			fscanf(f, "%lf %lf %lf", &mats[num_mats - 1].Tf[0], &mats[num_mats - 1].Tf[1], &mats[num_mats - 1].Tf[2]);
+			fscanf_s(f, "%lf %lf %lf", &mats[num_mats - 1].Tf[0], &mats[num_mats - 1].Tf[1], &mats[num_mats - 1].Tf[2]);
 		}
 		else if (strcmp(keyword, "illum") == 0) {
-			fscanf(f, "%d", &mats[num_mats - 1].illum);
+			fscanf_s(f, "%d", &mats[num_mats - 1].illum);
 		}
 		else if (strcmp(keyword, "Ns") == 0) {
-			fscanf(f, "%lf", &mats[num_mats - 1].Ns);
+			fscanf_s(f, "%lf", &mats[num_mats - 1].Ns);
 		}
 		else if (strcmp(keyword, "Ni") == 0) {
-			fscanf(f, "%lf", &mats[num_mats - 1].Ni);
+			fscanf_s(f, "%lf", &mats[num_mats - 1].Ni);
 		}
 		else if (strcmp(keyword, "d") == 0) {
-			fscanf(f, "%lf", &mats[num_mats - 1].d);
+			fscanf_s(f, "%lf", &mats[num_mats - 1].d);
 		}
-		else if (strcmp(keyword, "#") == 0) {//comment
+		else if (strcmp(keyword, "#") == 0) {
 			fgets(name, 100, f);
 		}
 		else {
@@ -275,16 +277,17 @@ void allocate_mem(const char* fname) {
 	int a[3];
 
 	FILE* f;
-	char keyword[100], path[_MAX_PATH];
+	errno_t err;
+	char keyword[MAX_KEYWORD_LENGTH], path[_MAX_PATH], name[_MAX_FNAME];
 
-	f = fopen(fname, "rb");
-	if (f == NULL)
+	err = fopen_s(&f, fname, "rb");
+	if (err != 0)
 	{
 		SDL_Log("can't open file, %s\n", fname);
 		exit(1);
 	}
 
-	while (fscanf(f, "%s", keyword) == 1) {
+	while (fscanf_s(f, "%s", keyword, MAX_KEYWORD_LENGTH) == 1) {
 		if (strcmp(keyword, "v") == 0) {
 			num_v++;
 		}
@@ -298,19 +301,19 @@ void allocate_mem(const char* fname) {
 			format = get_face_format(f);
 			if (format == 1) {//Face format: v v v
 				//A face must have at least three vertices, so skip past these and increment triangle count
-				fscanf(f, "%d %d %d", &a[0], &a[1], &a[2]);
+				fscanf_s(f, "%d %d %d", &a[0], &a[1], &a[2]);
 				num_tris++;
 
 				//Will need to calculate and add 1 normal for the face
 				num_vn++;
 
-				if (fscanf(f, "%d", &a[0]) == 1) {
+				if (fscanf_s(f, "%d", &a[0]) == 1) {
 					//Face has a fourth vertex, means a quadrilateral
 					//Will be triangulated into two triangles
 					num_tris++;
 
 
-					if (fscanf(f, "%d", &a[0]) == 1) {
+					if (fscanf_s(f, "%d", &a[0]) == 1) {
 						//Face has a fifth vertex
 						//Program can't currently handle faces with more than 4 vertices
 						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
@@ -320,18 +323,18 @@ void allocate_mem(const char* fname) {
 			}
 			else if (format == 2) {//Face format: v/vt v/vt v/vt
 				//Skip past the first three vertices
-				fscanf(f, "%d/%d", &a[0], &a[1]);
-				fscanf(f, "%d/%d", &a[0], &a[1]);
-				fscanf(f, "%d/%d", &a[0], &a[1]);
+				fscanf_s(f, "%d/%d", &a[0], &a[1]);
+				fscanf_s(f, "%d/%d", &a[0], &a[1]);
+				fscanf_s(f, "%d/%d", &a[0], &a[1]);
 				num_tris++;
 
 				//Will need to calculate and add 1 normal for the face
 				num_vn++;
 
-				if (fscanf(f, "%d/%d", &a[0], &a[1]) == 2) {
+				if (fscanf_s(f, "%d/%d", &a[0], &a[1]) == 2) {
 					//Face has a fourth vertex, means a quadrilateral
 					num_tris++;
-					if (fscanf(f, "%d/%d", &a[0], &a[1]) == 2) {
+					if (fscanf_s(f, "%d/%d", &a[0], &a[1]) == 2) {
 						//Fifth vertex
 						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
 						exit(1);
@@ -340,15 +343,15 @@ void allocate_mem(const char* fname) {
 			}
 			else if (format == 3) {//Face format: v/vt/vn  v/vt/vn v/vt/vn
 				//Skip past the first three vertices
-				fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]);
-				fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]);
-				fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]);
+				fscanf_s(f, "%d/%d/%d", &a[0], &a[1], &a[2]);
+				fscanf_s(f, "%d/%d/%d", &a[0], &a[1], &a[2]);
+				fscanf_s(f, "%d/%d/%d", &a[0], &a[1], &a[2]);
 				num_tris++;
 
-				if (fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]) == 3) {
+				if (fscanf_s(f, "%d/%d/%d", &a[0], &a[1], &a[2]) == 3) {
 					//Face has a fourth vertex, means a quadrilateral
 					num_tris++;
-					if (fscanf(f, "%d/%d/%d", &a[0], &a[1], &a[2]) == 3) {
+					if (fscanf_s(f, "%d/%d/%d", &a[0], &a[1], &a[2]) == 3) {
 						//Fifth vertex
 						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
 						exit(1);
@@ -357,15 +360,15 @@ void allocate_mem(const char* fname) {
 			}
 			else if (format == 4) {//Face format: v//vn v//vn v//vn
 				//Skip past the first three vertices
-				fscanf(f, "%d//%d", &a[0], &a[1]);
-				fscanf(f, "%d//%d", &a[0], &a[1]);
-				fscanf(f, "%d//%d", &a[0], &a[1]);
+				fscanf_s(f, "%d//%d", &a[0], &a[1]);
+				fscanf_s(f, "%d//%d", &a[0], &a[1]);
+				fscanf_s(f, "%d//%d", &a[0], &a[1]);
 				num_tris++;
 
-				if (fscanf(f, "%d//%d", &a[0], &a[1]) == 2) {
+				if (fscanf_s(f, "%d//%d", &a[0], &a[1]) == 2) {
 					//Face has a fourth vertex, means a quadrilateral
 					num_tris++;
-					if (fscanf(f, "%d//%d", &a[0], &a[1]) == 2) {
+					if (fscanf_s(f, "%d//%d", &a[0], &a[1]) == 2) {
 						//Fifth vertex
 						SDL_Log("The object contains a face with more than 4 vertices. Exiting\n");
 						exit(1);
@@ -374,9 +377,9 @@ void allocate_mem(const char* fname) {
 			}
 		}
 		else if (strcmp(keyword, "mtllib") == 0) {
-			fscanf(f, "%s", keyword);
+			fscanf_s(f, "%s", name, _MAX_FNAME);
 
-			errno_t err = _makepath_s(path, _MAX_PATH, drive, dir, keyword, NULL);
+			errno_t err = _makepath_s(path, _MAX_PATH, drive, dir, name, NULL);
 			if (err != 0) {
 				printf("Error creating path. Error code %d.\n", err);
 				exit(1);
@@ -386,7 +389,7 @@ void allocate_mem(const char* fname) {
 		}
 		else {
 			//Read something that is not currently being allocated memory
-			fgets(keyword, 100, f); //skip the line
+			fgets(keyword, MAX_KEYWORD_LENGTH, f); //skip the line
 		}
 	}
 	//.obj is 1-indexed so need to be 1 larget than the number of vertices
@@ -455,10 +458,10 @@ int read_obj_file(const char* fname)
 	int num_vt = 0;
 	int index_vA, index_vB, index_vC, index_vD, index_vt, index_vn, i;
 	int format;
-	double n[3], AB[3], AC[3];
+	double w;
 	FILE* f;
-	char keyword[100];
-	char name[100];
+	char keyword[MAX_KEYWORD_LENGTH];
+	char name[_MAX_FNAME];
 	char path[_MAX_PATH];
 
 
@@ -467,40 +470,40 @@ int read_obj_file(const char* fname)
 
 
 	//Need to read as binary for ftell and fseek to work properly on Windows
-	f = fopen(fname, "rb");
+	err = fopen_s(&f, fname, "rb");
 	if (f == NULL)
 	{
 		SDL_Log("can't open file, %s\n", fname);
 		exit(1);
 	}
 	num_tris = 0;
-	while (fscanf(f, "%s", keyword) == 1)
+	while (fscanf_s(f, "%s", keyword, MAX_KEYWORD_LENGTH) == 1)
 	{
 		if (strcmp(keyword, "v") == 0)
 		{//geometric vertex
 			num_v++;
-			fscanf(f, "%lf %lf %lf %lf", &x[num_v], &y[num_v], &z[num_v]);
+			fscanf_s(f, "%lf %lf %lf %lf", &x[num_v], &y[num_v], &z[num_v], &w);
 		}
 		else if (strcmp(keyword, "vt") == 0)
 		{//texture vertex
 			num_vt++;
-			fscanf(f, "%lf %lf", &u[num_vt], &v[num_vt]);
+			fscanf_s(f, "%lf %lf", &u[num_vt], &v[num_vt]);
 		}
 		else if (strcmp(keyword, "vn") == 0)
 		{//vertex normal
 			num_vn++;
-			fscanf(f, "%lf %lf %lf", &xnormal[num_vn], &ynormal[num_vn], &znormal[num_vn]);
+			fscanf_s(f, "%lf %lf %lf", &xnormal[num_vn], &ynormal[num_vn], &znormal[num_vn]);
 		}
 		else if (strcmp(keyword, "vp") == 0)
 		{//parameter space vertex
 		}
 		else if (strcmp(keyword, "g") == 0)
 		{//group
-			fscanf(f, "%s", name);
+			fscanf_s(f, "%s", name, _MAX_FNAME);
 		}
 		else if (strcmp(keyword, "s") == 0)
 		{//smooth shading
-			fscanf(f, "%s", name);
+			fscanf_s(f, "%s", name, _MAX_FNAME);
 		}
 		else if (strcmp(keyword, "f") == 0)
 		{//face
@@ -517,9 +520,9 @@ int read_obj_file(const char* fname)
 			if (format == 1)
 			{//Face format: v v v
 				//Indeces of vertices of the triangle
-				fscanf(f, "%d", &index_vA);
-				fscanf(f, "%d", &index_vB);
-				fscanf(f, "%d", &index_vC);
+				fscanf_s(f, "%d", &index_vA);
+				fscanf_s(f, "%d", &index_vB);
+				fscanf_s(f, "%d", &index_vC);
 
 				tris[num_tris].A = index_vA;
 				tris[num_tris].B = index_vB;
@@ -530,7 +533,7 @@ int read_obj_file(const char* fname)
 				find_and_add_normal(index_vA, index_vB, index_vC);
 
 				//Check if face is a quadrilateral
-				if (fscanf(f, "%d", &index_vD) == 1) {
+				if (fscanf_s(f, "%d", &index_vD) == 1) {
 					//Triangulate the quadrilateral
 					num_tris++;
 
@@ -547,19 +550,19 @@ int read_obj_file(const char* fname)
 			}
 			else if (format == 2) {//Face format: v/vt v/vt v/vt
 			  //First vertex of triangle
-				fscanf(f, "%d/%d", &index_vA, &index_vt);
+				fscanf_s(f, "%d/%d", &index_vA, &index_vt);
 
 				tris[num_tris].A = index_vA;
 				tris[num_tris].At = index_vt;
 
 				//Second vertex of triangle
-				fscanf(f, "%d/%d", &index_vB, &index_vt);
+				fscanf_s(f, "%d/%d", &index_vB, &index_vt);
 
 				tris[num_tris].B = index_vB;
 				tris[num_tris].Bt = index_vt;
 
 				//Third vertex of triangle
-				fscanf(f, "%d/%d", &index_vC, &index_vt);
+				fscanf_s(f, "%d/%d", &index_vC, &index_vt);
 
 				tris[num_tris].C = index_vC;
 				tris[num_tris].Ct = index_vt;
@@ -569,7 +572,7 @@ int read_obj_file(const char* fname)
 				find_and_add_normal(index_vA, index_vB, index_vC);
 
 				//Check if face is a quadrilateral
-				if (fscanf(f, "%d/%d", &index_vD, &index_vt) == 2) {
+				if (fscanf_s(f, "%d/%d", &index_vD, &index_vt) == 2) {
 					//Triangulate the quadrilateral
 					num_tris++;
 
@@ -596,28 +599,28 @@ int read_obj_file(const char* fname)
 			}
 			else if (format == 3) {//Face format: v/vt/vn  v/vt/vn v/vt/vn
 			  //First vertex of triangle
-				fscanf(f, "%d/%d/%d", &index_vA, &index_vt, &index_vn);
+				fscanf_s(f, "%d/%d/%d", &index_vA, &index_vt, &index_vn);
 
 				tris[num_tris].A = index_vA;
 				tris[num_tris].At = index_vt;
 				tris[num_tris].An = index_vn;
 
 				//Second vertex of triangle
-				fscanf(f, "%d/%d/%d", &index_vB, &index_vt, &index_vn);
+				fscanf_s(f, "%d/%d/%d", &index_vB, &index_vt, &index_vn);
 
 				tris[num_tris].B = index_vB;
 				tris[num_tris].Bt = index_vt;
 				tris[num_tris].Bn = index_vn;
 
 				//Third vertex of triangle
-				fscanf(f, "%d/%d/%d", &index_vC, &index_vt, &index_vn);
+				fscanf_s(f, "%d/%d/%d", &index_vC, &index_vt, &index_vn);
 
 				tris[num_tris].C = index_vC;
 				tris[num_tris].Ct = index_vt;
 				tris[num_tris].Cn = index_vn;
 
 				//Check if face is a quadrilateral
-				if (fscanf(f, "%d/%d/%d", &index_vD, &index_vt, &index_vn) == 3) {
+				if (fscanf_s(f, "%d/%d/%d", &index_vD, &index_vt, &index_vn) == 3) {
 					//Triangulate the quadrilateral
 					num_tris++;
 
@@ -643,25 +646,25 @@ int read_obj_file(const char* fname)
 			}
 			else if (format == 4) {//Face format: v//vn v//vn v//vn
 			  //First vertex of triangle
-				fscanf(f, "%d//%d", &index_vA, &index_vn);
+				fscanf_s(f, "%d//%d", &index_vA, &index_vn);
 
 				tris[num_tris].A = index_vA;
 				tris[num_tris].An = index_vn;
 
 				//Second vertex of triangle
-				fscanf(f, "%d//%d", &index_vB, &index_vn);
+				fscanf_s(f, "%d//%d", &index_vB, &index_vn);
 
 				tris[num_tris].B = index_vB;
 				tris[num_tris].Bn = index_vn;
 
 				//Third vertex of triangle
-				fscanf(f, "%d//%d", &index_vC, &index_vn);
+				fscanf_s(f, "%d//%d", &index_vC, &index_vn);
 
 				tris[num_tris].C = index_vC;
 				tris[num_tris].Cn = index_vn;
 
 				//Check if face is a quadrilateral
-				if (fscanf(f, "%d//%d", &index_vD, &index_vn) == 2) {
+				if (fscanf_s(f, "%d//%d", &index_vD, &index_vn) == 2) {
 					//Triangulate the quadrilateral
 					num_tris++;
 
@@ -688,7 +691,7 @@ int read_obj_file(const char* fname)
 			num_tris++;
 		}
 		else if (strcmp(keyword, "mtllib") == 0) {//Material file
-			fscanf(f, "%s", name);
+			fscanf_s(f, "%s", name, _MAX_FNAME);
 			err = _makepath_s(path, _MAX_PATH, drive, dir, name, NULL);
 			if (err != 0) {
 				printf("Error creating path. Error code %d.\n", err);
@@ -698,7 +701,7 @@ int read_obj_file(const char* fname)
 			read_mtl_file(path);
 		}
 		else if (strcmp(keyword, "usemtl") == 0) {//Use material
-			fscanf(f, "%s", name);
+			fscanf_s(f, "%s", name, _MAX_FNAME);
 			for (i = 0; i < num_mats; i++) {
 				if (strcmp(name, mats[i].name) == 0) {
 					current_mat = i;

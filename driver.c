@@ -10,6 +10,8 @@
 #include "graphic_tools.h"
 #include "kernel.h"
 
+#define MAX_FNAME_LENGTH 200
+
 int main(int argc, char** argv)
 {
     init_graphics();
@@ -191,8 +193,8 @@ int main(int argc, char** argv)
         } // end for x_pix
 
         SDL_RenderPresent(S_Renderer);
-        char fname[200];
-        sprintf(fname, "pic/pic%04d.bmp", frame_number);
+        char fname[MAX_FNAME_LENGTH];
+        sprintf_s(fname, MAX_FNAME_LENGTH, "pic/pic%04d.bmp", frame_number);
 
         save_image_to_file(fname);
 
