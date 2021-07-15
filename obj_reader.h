@@ -5,7 +5,7 @@
 
 typedef struct Material {
     int index;
-    char name[100];
+    char name[_MAX_FNAME];
     double Ka[3]; //ambient rgb
     double Kd[3]; //diffuse rgb
     double Ks[3]; //specular rgb
