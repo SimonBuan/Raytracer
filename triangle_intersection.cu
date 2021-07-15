@@ -96,7 +96,7 @@ __global__ void intersect_single_triangle_device(double S[3], double E[3], doubl
 }
 
 int intersect_all_triangles_device(double S[3], double E[3],
-    double uv[2], double point[3])
+    double uv[2], double point[3], Triangle* tris, double* x, double* y, double* z, int num_tris)
 {
     //Allocate device memory for distance array
     size_t bytes = sizeof(double) * num_tris;

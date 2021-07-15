@@ -18,7 +18,7 @@ int main(int argc, char** argv)
     double degrees_of_half_angle;
 
     degrees_of_half_angle = 30;
-    read_obj_file("./objects/teapot/teapot.obj");
+    read_obj_file("./objects/sus/sus.obj");
 
     double tan_half = tan(degrees_of_half_angle * M_PI / 180);
 
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
                 screen_pt[1] = y_pix - SCREEN_HEIGHT / 2;
                 screen_pt[2] = (SCREEN_WIDTH / 2) / tan_half;
 
-                s = intersect_all_triangles_device(origin, screen_pt, uv, point);
+                s = intersect_all_triangles_device(origin, screen_pt, uv, point, tris, x, y, z, num_tris);
                 if (s == -1)
                 {
                     argb[0] = argb[1] = argb[2] = 0.5;

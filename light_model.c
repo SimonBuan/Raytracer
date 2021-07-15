@@ -67,7 +67,7 @@ int Light_Model_Single(double Ka[3],
 	double point[3];
 
 	//Check if there is an object between light and our intersection point
-	if (intersect_all_triangles_device(shadow_S, light_in_eye_space[light_num], uv, point) != -1) {
+	if (intersect_all_triangles_device(shadow_S, light_in_eye_space[light_num], uv, point, tris, x, y, z, num_tris) != -1) {
 		//Light blocked by object, just want ambient
 		argb[0] = 0;
 		argb[1] = 0;
