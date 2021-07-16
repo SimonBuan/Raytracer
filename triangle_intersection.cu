@@ -122,24 +122,24 @@ int intersect_all_triangles_device(double S[3], double E[3],
     cudaMalloc(&d_tris, num_tris * sizeof(Triangle));
     cudaMemcpy(d_tris, tris, num_tris * sizeof(Triangle), cudaMemcpyHostToDevice);
 
-    double* dev_x;
-    double* dev_y;
-    double* dev_z;
+    double* d_x;
+    double* d_y;
+    double* d_z;
     
     //Allocate device memory
-    cudaMalloc(&dev_x, bytes);
-    cudaMalloc(&dev_y, bytes);
-    cudaMalloc(&dev_z, bytes);
+    cudaMalloc(&d_x, bytes);
+    cudaMalloc(&d_y, bytes);
+    cudaMalloc(&d_z, bytes);
 
     //Copy data to device
-    cudaMemcpy(dev_x, x, bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_y, y, bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_z, z, bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_x, x, bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_y, y, bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_z, z, bytes, cudaMemcpyHostToDevice);
 
     //Copy number of triangles to device
-    int* dev_num_tris;
-    cudaMalloc(&dev_num_tris, 2*sizeof(int));
-    cudaMemcpy(dev_num_tris, &num_tris, sizeof(int), cudaMemcpyHostToDevice);
+    int* d_num_tris;
+    cudaMalloc(&d_num_tris, 2*sizeof(int));
+    cudaMemcpy(d_num_tris, &num_tris, sizeof(int), cudaMemcpyHostToDevice);
 
     //Threads per CTA (1024)
     int NUM_THREADS = 1 << 10;
@@ -147,14 +147,14 @@ int intersect_all_triangles_device(double S[3], double E[3],
     //CTAs per grid
     int NUM_BLOCKS = (num_tris + NUM_THREADS - 1) / NUM_THREADS;
 
-    intersect_single_triangle_device << <NUM_BLOCKS, NUM_THREADS >> > (d_S, d_E, d_UV, d_dist, d_tris, dev_x, dev_y, dev_z, dev_num_tris);
+    intersect_single_triangle_device << <NUM_BLOCKS, NUM_THREADS >> > (d_S, d_E, d_UV, d_dist, d_tris, d_x, d_y, d_z, d_num_tris);
 
     //Free device memory
     cudaFree(d_tris);
-    cudaFree(dev_x);
-    cudaFree(dev_y);
-    cudaFree(dev_z);
-    cudaFree(dev_num_tris);
+    cudaFree(d_x);
+    cudaFree(d_y);
+    cudaFree(d_z);
+    cudaFree(d_num_tris);
 
     //Copy result from device to host
     double* dist;

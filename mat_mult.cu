@@ -38,23 +38,23 @@ void mat_mult_device(
 	size_t mat_bytes = 16 * sizeof(double);
 
 	//Allocates memory and copies contents of m onto device
-	double* dev_m;
-	cudaMalloc(&dev_m, mat_bytes);
-	cudaMemcpy(dev_m, m, mat_bytes, cudaMemcpyHostToDevice);
+	double* d_m;
+	cudaMalloc(&d_m, mat_bytes);
+	cudaMemcpy(d_m, m, mat_bytes, cudaMemcpyHostToDevice);
 
-	double* dev_x;
-	double* dev_y;
-	double* dev_z;
+	double* d_x;
+	double* d_y;
+	double* d_z;
 
 	//Allocate device memory
-	cudaMalloc(&dev_x, bytes);
-	cudaMalloc(&dev_y, bytes);
-	cudaMalloc(&dev_z, bytes);
+	cudaMalloc(&d_x, bytes);
+	cudaMalloc(&d_y, bytes);
+	cudaMalloc(&d_z, bytes);
 
 	//Copy data to device
-	cudaMemcpy(dev_x, x, bytes, cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_y, y, bytes, cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_z, z, bytes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_x, x, bytes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_y, y, bytes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_z, z, bytes, cudaMemcpyHostToDevice);
 
 	//Threads per CTA (1024)
 	int NUM_THREADS = 1 << 10;
@@ -62,15 +62,17 @@ void mat_mult_device(
 	//CTAs per grid
 	int NUM_BLOCKS = (numpoints + NUM_THREADS - 1) / NUM_THREADS;
 
-	mat_mult_points_kernel<<<NUM_BLOCKS, NUM_THREADS>>>(dev_m, dev_x, dev_y, dev_z, numpoints);
+	mat_mult_points_kernel<<<NUM_BLOCKS, NUM_THREADS>>>(d_m, d_x, d_y, d_z, numpoints);
+
+	cudaFree(d_m);
 
 	//Copy data back from device to host
-	cudaMemcpy(X, dev_x, bytes, cudaMemcpyDeviceToHost);
-	cudaMemcpy(Y, dev_y, bytes, cudaMemcpyDeviceToHost);
-	cudaMemcpy(Z, dev_z, bytes, cudaMemcpyDeviceToHost);
+	cudaMemcpy(X, d_x, bytes, cudaMemcpyDeviceToHost);
+	cudaMemcpy(Y, d_y, bytes, cudaMemcpyDeviceToHost);
+	cudaMemcpy(Z, d_z, bytes, cudaMemcpyDeviceToHost);
 
 	//Free device memory
-	cudaFree(dev_x);
-	cudaFree(dev_y);
-	cudaFree(dev_z);
+	cudaFree(d_x);
+	cudaFree(d_y);
+	cudaFree(d_z);
 }
