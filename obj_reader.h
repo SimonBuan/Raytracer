@@ -2,6 +2,7 @@
 #define _obj_reader_h
 
 #include <SDL.h>
+#include <stdlib.h>
 
 typedef struct Material {
     int index;
